@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import TagInput from './components/TagInput'
 import QueryCard from './components/QueryCard'
-import type { Metadata, Property, QueryHistoryItem } from './types'
+import type { DimensionFilter, FilterOperator, Metadata, Property, QueryHistoryItem } from './types'
 
 // ── Sprout icon (inline SVG so fill color is controllable via CSS currentColor) ──
 function SproutIcon({ size = 20, style }: { size?: number; style?: React.CSSProperties }) {
@@ -51,12 +51,23 @@ export default function App() {
   const [startDate, setStartDate] = useState(daysAgoStr(30))
   const [endDate, setEndDate] = useState(todayStr())
   const [history, setHistory] = useState<QueryHistoryItem[]>([])
+  const [filters, setFilters] = useState<DimensionFilter[]>([])
+  const [matchMode, setMatchMode] = useState<'AND' | 'OR'>('AND')
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number; current: string } | null>(null)
   const [latestQueryId, setLatestQueryId] = useState<string | null>(null)
   const [propsLoading, setPropsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const metaFetched = useRef(false)
+
+  const addFilter = () => {
+    if (!dimensions.length) return
+    setFilters(prev => [...prev, { dimension: dimensions[0], operator: 'CONTAINS', value: '' }])
+  }
+  const updateFilter = (i: number, patch: Partial<DimensionFilter>) =>
+    setFilters(prev => prev.map((f, idx) => idx === i ? { ...f, ...patch } : f))
+  const removeFilter = (i: number) =>
+    setFilters(prev => prev.filter((_, idx) => idx !== i))
 
   useEffect(() => {
     fetch('/api/properties')
@@ -151,6 +162,8 @@ export default function App() {
           property_ids: Array.from(selected),
           metrics,
           dimensions,
+          filters: filters.filter(f => f.value.trim() !== ''),
+          match_mode: matchMode,
           start_date: startDate,
           end_date: endDate,
           property_map: propertyMap,
@@ -206,6 +219,8 @@ export default function App() {
           end_date: endDate,
           metrics: [...metrics],
           dimensions: [...dimensions],
+          filters: filters.filter(f => f.value.trim() !== ''),
+          match_mode: matchMode,
           properties_queried: selected.size,
           metric_totals,
           results: accumulatedResults,
@@ -388,7 +403,10 @@ export default function App() {
               </div>
               <TagInput
                 value={dimensions}
-                onChange={setDimensions}
+                onChange={next => {
+                  setDimensions(next)
+                  setFilters(prev => prev.filter(f => next.includes(f.dimension)))
+                }}
                 suggestions={metadata?.dimensions ?? []}
                 placeholder="Search dimensions…"
                 loading={metaLoading}
@@ -396,6 +414,81 @@ export default function App() {
               />
             </div>
           </div>
+
+          {/* Filters */}
+          {dimensions.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={label}>Filters</span>
+                  {filters.length >= 2 && (
+                    <div style={{ display: 'flex', gap: 2, background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xs)', padding: 2 }}>
+                      {(['AND', 'OR'] as const).map(mode => (
+                        <button
+                          key={mode}
+                          onClick={() => setMatchMode(mode)}
+                          style={{
+                            background: matchMode === mode ? '#18181b' : 'transparent',
+                            color: matchMode === mode ? '#fff' : 'var(--text-secondary)',
+                            border: 'none',
+                            borderRadius: 3,
+                            padding: '2px 10px',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button className="btn-ghost" onClick={addFilter} style={ghostBtn}>+ Add filter</button>
+              </div>
+              {filters.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {filters.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <select
+                        value={f.dimension}
+                        onChange={e => updateFilter(i, { dimension: e.target.value })}
+                        style={selectStyle}
+                      >
+                        {dimensions.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <select
+                        value={f.operator}
+                        onChange={e => updateFilter(i, { operator: e.target.value as FilterOperator })}
+                        style={selectStyle}
+                      >
+                        <option value="EXACT">exact</option>
+                        <option value="CONTAINS">contains</option>
+                        <option value="BEGINS_WITH">begins with</option>
+                        <option value="ENDS_WITH">ends with</option>
+                        <option value="REGEXP">regexp</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={f.value}
+                        onChange={e => updateFilter(i, { value: e.target.value })}
+                        placeholder="value"
+                        style={{ ...selectStyle, flex: 1 }}
+                      />
+                      <button
+                        className="btn-danger"
+                        onClick={() => removeFilter(i)}
+                        style={{ ...ghostBtn, color: '#94a3b8', borderColor: 'var(--border)', padding: '5px 10px' }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Date range + Run */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -575,6 +668,18 @@ const pill: React.CSSProperties = {
   padding: '2px 8px',
   borderRadius: 99,
   border: '1px solid #c4c4f0',
+}
+
+const selectStyle: React.CSSProperties = {
+  fontFamily: 'inherit',
+  fontSize: 13,
+  padding: '6px 10px',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-sm)',
+  background: 'var(--surface)',
+  color: 'var(--text)',
+  outline: 'none',
+  cursor: 'pointer',
 }
 
 const ghostBtn: React.CSSProperties = {

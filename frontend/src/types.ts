@@ -16,6 +16,14 @@ export interface Metadata {
 
 export type QueryRow = Record<string, string | number | null | undefined>
 
+export type FilterOperator = 'EXACT' | 'CONTAINS' | 'BEGINS_WITH' | 'ENDS_WITH' | 'REGEXP'
+
+export interface DimensionFilter {
+  dimension: string
+  operator: FilterOperator
+  value: string
+}
+
 export interface QueryHistoryItem {
   id: string
   timestamp: Date
@@ -23,6 +31,8 @@ export interface QueryHistoryItem {
   end_date: string
   metrics: string[]
   dimensions: string[]
+  filters: DimensionFilter[]
+  match_mode: 'AND' | 'OR'
   properties_queried: number
   metric_totals?: Record<string, number>
   results?: QueryRow[]   // undefined until lazily loaded for cards from storage
