@@ -206,11 +206,6 @@ export default function App() {
       }
 
       if (accumulatedResults.length > 0) {
-        const valid = accumulatedResults.filter(r => !r.error)
-        const count = valid.length || 1
-        const metric_totals = Object.fromEntries(
-          metrics.map(m => [m, valid.reduce((sum, r) => sum + (parseFloat(r[m]) || 0), 0) / count])
-        )
         setLatestQueryId(id)
         setHistory(prev => [{
           id,
@@ -222,7 +217,6 @@ export default function App() {
           filters: filters.filter(f => f.value.trim() !== ''),
           match_mode: matchMode,
           properties_queried: selected.size,
-          metric_totals,
           results: accumulatedResults,
         }, ...prev])
       }
