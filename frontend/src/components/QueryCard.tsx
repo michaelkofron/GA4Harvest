@@ -177,7 +177,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                 padding: '2px 7px',
                 borderRadius: 20,
               }}>
-                {item.filters.length} {item.filters.length === 1 ? 'filter' : 'filters'} ({item.match_mode})
+                {item.filters.length} {item.filters.length === 1 ? 'filter' : `filters (${item.match_mode})`}
               </span>
             )}
             {hasError && (

@@ -237,7 +237,7 @@ export default function App() {
   const canRun = !loading && selected.size > 0 && metrics.length > 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
       {/* ── Header ── */}
       <header style={{
@@ -270,7 +270,6 @@ export default function App() {
       <div style={{
         background: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
-        flexShrink: 0,
       }}>
         <div style={{ ...container, padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
@@ -448,7 +447,7 @@ export default function App() {
                 <button className="btn-ghost" onClick={addFilter} style={ghostBtn}>+ Add filter</button>
               </div>
               {filters.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 192, overflowY: 'auto' }}>
                   {filters.map((f, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <select
@@ -593,7 +592,7 @@ export default function App() {
       </div>
 
       {/* ── History ── */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 24, paddingBottom: 40 }}>
+      <div style={{ paddingTop: 24, paddingBottom: 40 }}>
         <div style={container}>
           {history.length === 0 ? (
             <div style={{
