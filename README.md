@@ -14,6 +14,7 @@ Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in 
 - **Account grouping** — properties are grouped by account in the selector, with collapsible account headings and select-all per account
 - **Metrics & dimensions** — add any GA4 metric or dimension by name; the available list is pulled live from the API so you're always working with what your property actually supports
 - **Autocomplete search** — type in the metrics or dimensions field to filter suggestions by API name or display name; keyboard navigation with arrow keys and Enter
+- **Dimension filters** — add one or more filters to narrow results by dimension value; supports exact, contains, begins with, ends with, and regexp matching; combine multiple filters with AND or OR
 - **Real-time progress bar** — queries stream results property by property so you see progress as it happens rather than waiting for a single blocking request
 - **Rate limit handling** — automatically retries on quota errors with exponential backoff before giving up and marking the property as errored
 - **Query history** — every query you run is saved to `/storage/queries/` as a JSON file and persists across browser reloads; history loads on startup

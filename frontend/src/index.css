@@ -55,6 +55,12 @@ input[type="date"]:focus {
   box-shadow: 0 0 0 3px rgba(91,91,214,0.1);
 }
 
+select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(91,91,214,0.1);
+}
+
 button { font-family: inherit; cursor: pointer; }
 
 .btn-ghost:hover { background: var(--primary-light) !important; color: var(--primary-dark) !important; border-color: #c4c4f0 !important; }

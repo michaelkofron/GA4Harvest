@@ -168,6 +168,18 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                 avg {name}: {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </span>
             ))}
+            {item.filters?.length > 0 && (
+              <span style={{
+                background: '#f1f5f9',
+                color: 'var(--text-secondary)',
+                fontSize: 11,
+                fontWeight: 500,
+                padding: '2px 7px',
+                borderRadius: 20,
+              }}>
+                {item.filters.length} {item.filters.length === 1 ? 'filter' : `filters (${item.match_mode})`}
+              </span>
+            )}
             {hasError && (
               <span style={{
                 background: '#fef2f2',

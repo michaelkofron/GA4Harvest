@@ -40,6 +40,8 @@ class QueryRequest(BaseModel):
     property_ids: list[str]
     metrics: list[str]
     dimensions: list[str] = []
+    filters: list[dict] = []
+    match_mode: str = "AND"
     start_date: str
     end_date: str
     property_map: dict[str, dict] = {}
@@ -74,6 +76,8 @@ def run_query_stream(req: QueryRequest):
             req.end_date,
             req.property_map,
             storage_path,
+            req.filters,
+            req.match_mode,
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
