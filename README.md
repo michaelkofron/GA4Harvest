@@ -114,4 +114,4 @@ Opens at [http://localhost:5173](http://localhost:5173). Press Ctrl+C to stop.
 - `python-dotenv` — loads `.env` file if present
 
 **Node** (`frontend/package.json`)
-- `react`, `vite`, `typescript` — the usual
+- `react`, `vite`, `typescript`
