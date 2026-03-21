@@ -8,7 +8,7 @@ GA4Harvest fixes that. It connects to the GA4 Data API via a service account, li
 
 Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in real time over SSE so you see results property-by-property as they arrive rather than waiting for a single blocking request. Results persist to the local filesystem between sessions and lazy-load on demand so the UI stays fast regardless of history size.
 
-If this saves you some time, I'd love to hear about it — [☕ buy me a coffee](https://buymeacoffee.com/michaelkofron).
+<a href="https://www.buymeacoffee.com/michaelkofron" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
 ---
 
