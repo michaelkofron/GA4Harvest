@@ -1,5 +1,7 @@
 # GA4Harvest
 
+https://github.com/michaelkofron/GA4Harvest/raw/refs/heads/main/GA4Harvest-VideoDemo.mp4
+
 Google Analytics 4's reporting UI is built around a single property at a time. For anyone managing analytics across multiple clients or brands, that means running the same report dozens of times and stitching together spreadsheets by hand.
 
 GA4Harvest fixes that. It connects to the GA4 Data API via a service account, lists every property you have access to, and lets you run a single parameterized query across all of them simultaneously — returning unified results you can export in one click.
