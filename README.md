@@ -18,7 +18,7 @@ Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in 
 - **Real-time progress bar** — queries stream results property by property so you see progress as it happens rather than waiting for a single blocking request
 - **Rate limit handling** — automatically retries on quota errors with exponential backoff before giving up and marking the property as errored
 - **Query history** — every query you run is saved to `/storage/queries/` as a JSON file and persists across browser reloads; history loads on startup
-- **Expandable result cards** — each query appears as a collapsed card showing the timestamp, date range, property count, and metric totals; click to expand the full table
+- **Expandable result cards** — each query appears as a collapsed card showing the timestamp, date range, property count, and if filters were applied; click to expand the full table
 - **Lazy result loading** — full result rows are only fetched from disk when you actually open a card, keeping the history list fast regardless of how many queries are stored
 - **Error summary** — if any properties fail (incompatible fields, permissions, rate limits), the card shows a plain-English explanation of what went wrong without hiding the successful rows
 - **CSV export** — exports a flat table with property name, account name, date range, dimensions, and metrics per row
