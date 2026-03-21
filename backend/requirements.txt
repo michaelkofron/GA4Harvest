@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+google-analytics-admin
+google-analytics-data
+python-dotenv

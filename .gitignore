@@ -1,0 +1,24 @@
+# Credentials — never commit
+backend/credentials.json
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Misc
+.DS_Store
+*.log
+
+# Personal notes
+michaelsnotes.md
+
+# Query storage — keep the folder, ignore the contents
+storage/queries/*
+!storage/queries/.gitkeep
