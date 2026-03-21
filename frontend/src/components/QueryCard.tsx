@@ -63,19 +63,6 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
     else downloadJSON(results, `${filename}.json`, item.metrics, item.dimensions)
   }
 
-  // Header averages: use pre-computed metric_totals if available (loaded from storage),
-  // otherwise compute from results if they're in memory.
-  const metricTotals = item.metrics.map(m => {
-    const fromMeta = item.metric_totals?.[m]
-    const valid = localResults?.filter(r => !r.error) ?? []
-    const count = valid.length || 1
-    const fromResults = localResults !== null
-      ? valid.reduce((sum, r) => sum + (parseFloat(String(r[m] ?? 0)) || 0), 0) / count
-      : undefined
-    const total = fromMeta ?? fromResults ?? null
-    return { name: m, total }
-  })
-
   const results = localResults ?? []
   const hasError = results.some(r => r.error)
   const sampleRow: QueryRow = results[0] ?? {}
@@ -155,19 +142,6 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
             }}>
               {item.properties_queried} {item.properties_queried === 1 ? 'property' : 'properties'}
             </span>
-            {metricTotals.map(({ name, total }) => total !== null && (
-              <span key={name} style={{
-                background: 'var(--primary-light)',
-                color: 'var(--primary-dark)',
-                fontSize: 11,
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: 20,
-                border: '1px solid #c7d2fe',
-              }}>
-                avg {name}: {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </span>
-            ))}
             {item.filters?.length > 0 && (
               <span style={{
                 background: '#f1f5f9',
@@ -292,23 +266,6 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                   </tr>
                 ))}
               </tbody>
-              {item.dimensions.length === 0 && results.length > 0 && (
-                <tfoot>
-                  <tr style={{ background: '#f0f4ff', fontWeight: 700 }}>
-                    <td
-                      style={{ padding: '9px 14px', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}
-                      colSpan={tableCols.length - item.metrics.length}
-                    >
-                      Avg
-                    </td>
-                    {item.metrics.map(m => (
-                      <td key={m} style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--primary-dark)', fontWeight: 700 }}>
-                        {metricTotals.find(t => t.name === m)?.total?.toLocaleString(undefined, { maximumFractionDigits: 2 }) ?? '—'}
-                      </td>
-                    ))}
-                  </tr>
-                </tfoot>
-              )}
             </table>
           </div>
         )

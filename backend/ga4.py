@@ -168,14 +168,6 @@ def stream_report(
             if i < total - 1:
                 time.sleep(0.05)  # polite pause between properties
 
-        # Pre-compute averages for the collapsed card header
-        valid = [r for r in all_results if not r.get("error")]
-        count = len(valid) or 1
-        metric_totals = {
-            m: sum(float(r.get(m, 0) or 0) for r in valid) / count
-            for m in metrics
-        }
-
         # Persist to disk
         query_data = {
             "id": query_id,
@@ -187,12 +179,11 @@ def stream_report(
             "filters": filters or [],
             "match_mode": match_mode,
             "properties_queried": len(property_ids),
-            "metric_totals": metric_totals,
             "results": all_results,
         }
         storage_path.write_text(json.dumps(query_data, indent=2))
 
-        yield f"data: {json.dumps({'type': 'done', 'done': total, 'total': total, 'metric_totals': metric_totals})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'done': total, 'total': total})}\n\n"
 
     except Exception as e:
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"

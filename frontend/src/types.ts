@@ -34,6 +34,5 @@ export interface QueryHistoryItem {
   filters: DimensionFilter[]
   match_mode: 'AND' | 'OR'
   properties_queried: number
-  metric_totals?: Record<string, number>
   results?: QueryRow[]   // undefined until lazily loaded for cards from storage
 }
