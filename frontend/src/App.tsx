@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import TagInput from './components/TagInput'
 import DateRangePicker from './components/DateRangePicker'
 import QueryCard from './components/QueryCard'
-import type { DimensionFilter, FilterOperator, Metadata, Property, QueryHistoryItem } from './types'
+import type { DimensionFilter, FilterOperator, Metadata, Property, QueryHistoryItem, QueryRow } from './types'
 
 // ── Sprout icon (inline SVG so fill color is controllable via CSS currentColor) ──
 function SproutIcon({ size = 20, style }: { size?: number; style?: React.CSSProperties }) {
@@ -22,9 +22,6 @@ function SproutIcon({ size = 20, style }: { size?: number; style?: React.CSSProp
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10)
-}
 function daysAgoStr(n: number) {
   const d = new Date()
   d.setDate(d.getDate() - n)
@@ -49,13 +46,14 @@ export default function App() {
   const [dimensions, setDimensions] = useState<string[]>([])
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [metaLoading, setMetaLoading] = useState(false)
-  const [startDate, setStartDate] = useState(daysAgoStr(30))
-  const [endDate, setEndDate] = useState(todayStr())
+  const [startDate, setStartDate] = useState(daysAgoStr(28))
+  const [endDate, setEndDate] = useState(daysAgoStr(1))
+  const [compareRange, setCompareRange] = useState<{ start: string; end: string } | null>(null)
   const [history, setHistory] = useState<QueryHistoryItem[]>([])
   const [filters, setFilters] = useState<DimensionFilter[]>([])
   const [matchMode, setMatchMode] = useState<'AND' | 'OR'>('AND')
   const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState<{ done: number; total: number; current: string } | null>(null)
+  const [progress, setProgress] = useState<{ done: number; total: number; current: string; phase?: string } | null>(null)
   const [latestQueryId, setLatestQueryId] = useState<string | null>(null)
   const [propsLoading, setPropsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -89,6 +87,7 @@ export default function App() {
           setHistory(data.map((item: Omit<QueryHistoryItem, 'timestamp'> & { timestamp: string }) => ({
             ...item,
             timestamp: new Date(item.timestamp),
+            comparison: item.comparison ?? undefined,
           })))
         }
       })
@@ -141,6 +140,46 @@ export default function App() {
   const selectAll = () => setSelected(new Set(properties.map(p => p.property_id)))
   const clearAll = () => setSelected(new Set())
 
+  const streamQuery = async (
+    body: object,
+    onResult: (row: Record<string, unknown>) => void,
+    onProgress: (done: number, total: number, current: string) => void,
+  ): Promise<boolean> => {
+    const resp = await fetch('/api/query/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!resp.ok || !resp.body) {
+      const err = await resp.json().catch(() => ({}))
+      setError(err.detail ?? 'Query failed. Check the backend.')
+      return false
+    }
+    const reader = resp.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const parts = buffer.split('\n\n')
+      buffer = parts.pop() ?? ''
+      for (const part of parts) {
+        for (const line of part.split('\n')) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            if (event.type === 'progress') onProgress(event.done, event.total, event.current)
+            else if (event.type === 'result') onResult(event.data)
+            else if (event.type === 'error') setError(event.message ?? 'Query failed.')
+            else if (event.type === 'done') onProgress(event.total, event.total, '')
+          } catch { /* malformed SSE line */ }
+        }
+      }
+    }
+    return true
+  }
+
   const runQuery = async () => {
     if (!selected.size || !metrics.length) return
     setLoading(true)
@@ -151,75 +190,72 @@ export default function App() {
         .map(p => [p.property_id, { property_name: p.property_name, account_name: p.account_name }]),
     )
     const id = Date.now().toString()
-    const accumulatedResults: ReturnType<typeof Object.create>[] = []
-    setProgress({ done: 0, total: selected.size, current: '' })
+    const activeFilters = filters.filter(f => f.value.trim() !== '')
+    const mainResults: QueryRow[] = []
+    const compareResults: QueryRow[] = []
 
     try {
-      const resp = await fetch('/api/query/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // ── Main query ──
+      setProgress({ done: 0, total: selected.size, current: '', phase: 'Main' })
+      const ok = await streamQuery(
+        {
           query_id: id,
           property_ids: Array.from(selected),
-          metrics,
-          dimensions,
-          filters: filters.filter(f => f.value.trim() !== ''),
+          metrics, dimensions,
+          filters: activeFilters,
           match_mode: matchMode,
           start_date: startDate,
           end_date: endDate,
           property_map: propertyMap,
-        }),
-      })
+        },
+        row => mainResults.push({ ...row, _period: 'main' }),
+        (done, total, current) => setProgress({ done, total, current, phase: compareRange ? 'Main' : undefined }),
+      )
+      if (!ok) return
 
-      if (!resp.ok || !resp.body) {
-        const err = await resp.json().catch(() => ({}))
-        setError(err.detail ?? 'Query failed. Check the backend.')
-        return
+      // ── Compare query (if enabled) ──
+      if (compareRange) {
+        setProgress({ done: 0, total: selected.size, current: '', phase: 'Compare' })
+        await streamQuery(
+          {
+            query_id: `${id}_compare`,
+            property_ids: Array.from(selected),
+            metrics, dimensions,
+            filters: activeFilters,
+            match_mode: matchMode,
+            start_date: compareRange.start,
+            end_date: compareRange.end,
+            property_map: propertyMap,
+          },
+          row => compareResults.push({ ...row, _period: 'compare' }),
+          (done, total, current) => setProgress({ done, total, current, phase: 'Compare' }),
+        )
       }
 
-      const reader = resp.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const parts = buffer.split('\n\n')
-        buffer = parts.pop() ?? ''
-        for (const part of parts) {
-          for (const line of part.split('\n')) {
-            if (!line.startsWith('data: ')) continue
-            try {
-              const event = JSON.parse(line.slice(6))
-              if (event.type === 'progress') {
-                setProgress({ done: event.done, total: event.total, current: event.current })
-              } else if (event.type === 'result') {
-                accumulatedResults.push(event.data)
-              } else if (event.type === 'error') {
-                setError(event.message ?? 'Query failed.')
-              } else if (event.type === 'done') {
-                setProgress({ done: event.total, total: event.total, current: '' })
-              }
-            } catch { /* malformed SSE line */ }
-          }
-        }
-      }
-
-      if (accumulatedResults.length > 0) {
-        setLatestQueryId(id)
-        setHistory(prev => [{
+      const allResults = [...mainResults, ...compareResults]
+      if (allResults.length > 0) {
+        const historyItem = {
           id,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
           start_date: startDate,
           end_date: endDate,
           metrics: [...metrics],
           dimensions: [...dimensions],
-          filters: filters.filter(f => f.value.trim() !== ''),
+          filters: activeFilters,
           match_mode: matchMode,
+          comparison: compareRange ? { start_date: compareRange.start, end_date: compareRange.end } : undefined,
           properties_queried: selected.size,
-          results: accumulatedResults,
-        }, ...prev])
+          results: allResults,
+        }
+        // Persist merged results (including comparison rows + metadata) to disk
+        await fetch(`/api/history/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(historyItem),
+        }).catch(() => { /* non-fatal */ })
+
+        setLatestQueryId(id)
+        setHistory(prev => [{ ...historyItem, timestamp: new Date() }, ...prev])
       }
     } catch {
       setError('Query failed. Check the backend.')
@@ -491,6 +527,7 @@ export default function App() {
               startDate={startDate}
               endDate={endDate}
               onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
+              onCompareChange={setCompareRange}
             />
             <div style={{ flex: 1 }} />
             <button
@@ -542,6 +579,7 @@ export default function App() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7, alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {progress.phase && <span style={{ color: 'var(--text-muted)', marginRight: 4 }}>[{progress.phase}]</span>}
                   {progress.current
                     ? <><span style={{ color: 'var(--text-muted)' }}>Querying</span> <strong style={{ fontWeight: 500, color: 'var(--text)' }}>{progress.current}</strong></>
                     : 'Starting…'}

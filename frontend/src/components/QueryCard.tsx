@@ -1,6 +1,10 @@
 import { useState, useRef } from 'react'
 import type { QueryHistoryItem, QueryRow } from '../types'
-import { downloadCSV, downloadJSON } from '../utils/export'
+import {
+  downloadCSV, downloadJSON,
+  buildComparisonRows, downloadComparisonCSV, downloadComparisonJSON, copyComparisonTSV,
+  type ComparisonRow,
+} from '../utils/export'
 
 interface Props {
   item: QueryHistoryItem
@@ -57,26 +61,39 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
   }
 
   const [copied, setCopied] = useState(false)
+  const isComparison = !!item.comparison
+
+  const getComparisonRows = async (): Promise<ComparisonRow[]> => {
+    const results = localResults ?? await loadResults()
+    return buildComparisonRows(results, item.metrics)
+  }
 
   const handleExport = async (type: 'csv' | 'json') => {
-    const results = localResults ?? await loadResults()
     const filename = `ga4_${item.id}`
-    if (type === 'csv') downloadCSV(results, `${filename}.csv`)
-    else downloadJSON(results, `${filename}.json`, item.metrics, item.dimensions)
+    if (isComparison) {
+      const cmpRows = await getComparisonRows()
+      if (type === 'csv') downloadComparisonCSV(cmpRows, `${filename}_comparison.csv`)
+      else downloadComparisonJSON(cmpRows, `${filename}_comparison.json`)
+    } else {
+      const results = localResults ?? await loadResults()
+      if (type === 'csv') downloadCSV(results, `${filename}.csv`)
+      else downloadJSON(results, `${filename}.json`, item.metrics, item.dimensions)
+    }
   }
 
   const handleCopy = async () => {
-    const results = localResults ?? await loadResults()
-    if (!results.length) return
-    const cols = [
-      'property_name',
-      'account_name',
-      ...item.dimensions,
-      ...item.metrics,
-    ].filter(c => c in (results[0] ?? {}))
-    const rows = [cols, ...results.map(row => cols.map(c => row[c] ?? ''))]
-    const tsv = rows.map(r => r.join('\t')).join('\n')
-    await navigator.clipboard.writeText(tsv)
+    if (isComparison) {
+      const cmpRows = await getComparisonRows()
+      if (!cmpRows.length) return
+      await navigator.clipboard.writeText(copyComparisonTSV(cmpRows))
+    } else {
+      const results = localResults ?? await loadResults()
+      if (!results.length) return
+      const cols = ['property_name', 'account_name', ...item.dimensions, ...item.metrics]
+        .filter(c => c in (results[0] ?? {}))
+      const rows = [cols, ...results.map(row => cols.map(c => row[c] ?? ''))]
+      await navigator.clipboard.writeText(rows.map(r => r.join('\t')).join('\n'))
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -172,6 +189,11 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                 {item.filters.length} {item.filters.length === 1 ? 'filter' : `filters (${item.match_mode})`}
               </span>
             )}
+            {item.comparison && (
+              <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 11, fontWeight: 500, padding: '2px 7px', borderRadius: 20 }}>
+                vs {item.comparison.start_date} → {item.comparison.end_date}
+              </span>
+            )}
             {hasError && (
               <span style={{
                 background: '#fef2f2',
@@ -237,15 +259,11 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
       {/* Table */}
       {expanded && (
         resultsLoading ? (
-          <div style={{
-            borderTop: '1px solid var(--border)',
-            padding: '24px',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: 13,
-          }}>
+          <div style={{ borderTop: '1px solid var(--border)', padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
             Loading results…
           </div>
+        ) : isComparison ? (
+          <ComparisonTable results={results} metrics={item.metrics} comparison={item.comparison!} />
         ) : (
           <div style={{ borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -255,13 +273,9 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                     <th key={col} style={{
                       padding: '9px 14px',
                       textAlign: item.metrics.includes(col) ? 'right' : 'left',
-                      fontWeight: 600,
-                      fontSize: 11,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: 'var(--text-secondary)',
-                      borderBottom: '1px solid var(--border)',
-                      whiteSpace: 'nowrap',
+                      fontWeight: 600, fontSize: 11, textTransform: 'uppercase',
+                      letterSpacing: '0.05em', color: 'var(--text-secondary)',
+                      borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
                     }}>
                       {col}
                     </th>
@@ -273,8 +287,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                   <tr key={i} style={{ background: i % 2 === 0 ? 'var(--surface)' : '#fafbfc' }}>
                     {tableCols.map(col => (
                       <td key={col} style={{
-                        padding: '9px 14px',
-                        borderBottom: '1px solid #f1f5f9',
+                        padding: '9px 14px', borderBottom: '1px solid #f1f5f9',
                         textAlign: item.metrics.includes(col) ? 'right' : 'left',
                         color: col === 'error' ? 'var(--error)' : col === 'account_name' ? 'var(--text-secondary)' : 'var(--text)',
                         fontWeight: item.metrics.includes(col) ? 500 : 400,
@@ -291,6 +304,102 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
       )}
     </div>
   )
+}
+
+function ComparisonTable({ results, metrics, comparison }: {
+  results: QueryRow[]
+  metrics: string[]
+  comparison: { start_date: string; end_date: string }
+}) {
+  const rows = buildComparisonRows(results, metrics)
+  if (!rows.length) return null
+
+  const fmtVal = (v: string | number | null) => {
+    if (v === null || v === undefined) return '—'
+    const n = Number(v)
+    if (isNaN(n)) return String(v)
+    if (Math.abs(n) < 1 && n !== 0 && String(v).includes('.')) return (n * 100).toFixed(2) + '%'
+    return n.toLocaleString()
+  }
+
+  const fmtDelta = (v: string | number | null) => {
+    if (v === null || v === undefined) return '—'
+    const n = Number(v)
+    if (isNaN(n)) return String(v)
+    const sign = n >= 0 ? '+' : ''
+    if (Math.abs(n) < 1 && n !== 0 && String(v).includes('.')) return sign + (n * 100).toFixed(3) + ' pp'
+    return sign + n.toLocaleString()
+  }
+
+  const fmtPct = (v: string | number | null) => {
+    if (v === null || v === undefined) return '—'
+    const n = Number(v)
+    if (isNaN(n)) return String(v)
+    return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
+      <div style={{ padding: '6px 14px', background: '#fffbeb', borderBottom: '1px solid #fde68a', fontSize: 11, color: '#92400e', fontWeight: 500 }}>
+        Comparing <strong>{comparison.start_date} → {comparison.end_date}</strong>
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <thead>
+          <tr style={{ background: '#f8fafc' }}>
+            <th style={{ ...cmpTh, textAlign: 'left' }}>Property</th>
+            <th style={{ ...cmpTh, textAlign: 'left', color: 'var(--text-muted)' }}>Account</th>
+            {metrics.map(m => (
+              <>
+                <th key={`${m}-main`} style={{ ...cmpTh, borderLeft: '2px solid var(--border)' }}>Main</th>
+                <th key={`${m}-cmp`} style={{ ...cmpTh, color: '#92400e' }}>Compare</th>
+                <th key={`${m}-d`} style={cmpTh}>Δ</th>
+                <th key={`${m}-pct`} style={cmpTh}>Δ %</th>
+              </>
+            ))}
+          </tr>
+          <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+            <th style={{ ...cmpSubTh, textAlign: 'left' }} colSpan={2} />
+            {metrics.map(m => (
+              <th key={m} colSpan={4} style={{ ...cmpSubTh, borderLeft: '2px solid var(--border)', textAlign: 'center', color: 'var(--text-secondary)' }}>{m}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} style={{ background: i % 2 === 0 ? 'var(--surface)' : '#fafbfc' }}>
+              <td style={{ ...cmpTd, fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.property_name}</td>
+              <td style={{ ...cmpTd, color: 'var(--text-secondary)' }}>{row.account_name}</td>
+              {metrics.map(m => {
+                const delta = row[`${m}_delta`] as number | null
+                const colour = delta === null ? 'inherit' : delta >= 0 ? '#16a34a' : '#dc2626'
+                return (
+                  <>
+                    <td key={`${m}-main`} style={{ ...cmpTd, textAlign: 'right', borderLeft: '2px solid #f1f5f9' }}>{fmtVal(row[`${m}_main`])}</td>
+                    <td key={`${m}-cmp`} style={{ ...cmpTd, textAlign: 'right', color: '#92400e' }}>{fmtVal(row[`${m}_compare`])}</td>
+                    <td key={`${m}-d`} style={{ ...cmpTd, textAlign: 'right', color: colour, fontWeight: 600 }}>{fmtDelta(row[`${m}_delta`])}</td>
+                    <td key={`${m}-pct`} style={{ ...cmpTd, textAlign: 'right', color: colour }}>{fmtPct(row[`${m}_delta_pct`])}</td>
+                  </>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+const cmpTh: React.CSSProperties = {
+  padding: '7px 10px', fontWeight: 600, textAlign: 'right',
+  color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)',
+  whiteSpace: 'nowrap', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em',
+}
+const cmpSubTh: React.CSSProperties = {
+  padding: '4px 10px', fontWeight: 500, fontSize: 11,
+  color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
+}
+const cmpTd: React.CSSProperties = {
+  padding: '7px 10px', color: 'var(--text)', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9',
 }
 
 const actionBtn: React.CSSProperties = {
