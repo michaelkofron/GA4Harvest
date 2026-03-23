@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MetaItem } from '../types'
 
 interface TagInputProps {
@@ -22,6 +22,11 @@ export default function TagInput({
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const activeItemRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    activeItemRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [activeIdx])
 
   // No slice — show all matches, dropdown scrolls
   const filtered = suggestions.filter(
@@ -163,6 +168,7 @@ export default function TagInput({
               {filtered.map((s, i) => (
                 <div
                   key={s.api_name}
+                  ref={i === activeIdx ? activeItemRef : null}
                   className="suggestion-row"
                   onMouseDown={() => add(s.api_name)}
                   style={{
