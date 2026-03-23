@@ -17,6 +17,7 @@ Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in 
 - **Multi-property queries** — select any combination of properties across accounts and run a single report across all of them at once
 - **Account grouping** — properties are grouped by account in the selector, with collapsible account headings and select-all per account
 - **Metrics & dimensions** — add any GA4 metric or dimension by name; the available list is pulled live from the API so you're always working with what your property actually supports
+- **Date range presets** — pick from Last 7 days, Last 28 days, Last 90 days, This month, Last month, or Year to date; all presets end on yesterday to match GA4's convention of using only fully-processed data; custom ranges are also supported
 - **Autocomplete search** — type in the metrics or dimensions field to filter suggestions by API name or display name; keyboard navigation with arrow keys and Enter
 - **Dimension filters** — add one or more filters to narrow results by dimension value; supports exact, contains, begins with, ends with, and regexp matching; combine multiple filters with AND or OR
 - **Real-time progress bar** — queries stream results property by property so you see progress as it happens rather than waiting for a single blocking request

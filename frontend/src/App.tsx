@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import TagInput from './components/TagInput'
+import DateRangePicker from './components/DateRangePicker'
 import QueryCard from './components/QueryCard'
 import type { DimensionFilter, FilterOperator, Metadata, Property, QueryHistoryItem } from './types'
 
@@ -486,11 +487,11 @@ export default function App() {
           {/* Date range + Run */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div style={label}>Date range</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-            </div>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
+            />
             <div style={{ flex: 1 }} />
             <button
               onClick={runQuery}
