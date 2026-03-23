@@ -1,7 +1,7 @@
 import os
 import json
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -105,6 +105,14 @@ def get_history_item(query_id: str):
     if not f.exists():
         raise HTTPException(status_code=404, detail="Query not found")
     return json.loads(f.read_text())
+
+
+@app.put("/api/history/{query_id}")
+async def update_history_item(query_id: str, request: Request):
+    f = STORAGE_DIR / f"{query_id}.json"
+    data = await request.json()
+    f.write_text(json.dumps(data, indent=2))
+    return {"ok": True}
 
 
 @app.delete("/api/history/{query_id}")

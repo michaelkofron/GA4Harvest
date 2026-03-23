@@ -33,6 +33,7 @@ export interface QueryHistoryItem {
   dimensions: string[]
   filters: DimensionFilter[]
   match_mode: 'AND' | 'OR'
+  comparison?: { start_date: string; end_date: string }
   properties_queried: number
   results?: QueryRow[]   // undefined until lazily loaded for cards from storage
 }
