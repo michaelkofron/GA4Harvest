@@ -14,24 +14,13 @@ Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in 
 
 ## Features
 
-- **Multi-property queries** — select any combination of properties across accounts and run a single report across all of them at once
-- **Account grouping** — properties are grouped by account in the selector, with collapsible account headings and select-all per account
-- **Metrics & dimensions** — add any GA4 metric or dimension by name; the available list is pulled live from the API so you're always working with what your property actually supports
-- **Date range presets** — pick from Last 7 days, Last 28 days, Last 90 days, This month, Last month, or Year to date; all presets end on yesterday to match GA4's convention of using only fully-processed data; custom ranges are also supported
-- **Autocomplete search** — type in the metrics or dimensions field to filter suggestions by API name or display name; keyboard navigation with arrow keys and Enter
-- **Dimension filters** — add one or more filters to narrow results by dimension value; supports exact, contains, begins with, ends with, and regexp matching; combine multiple filters with AND or OR
-- **Real-time progress bar** — queries stream results property by property so you see progress as it happens rather than waiting for a single blocking request
-- **Rate limit handling** — automatically retries on quota errors with exponential backoff before giving up and marking the property as errored
-- **Query history** — every query you run is saved to `/storage/queries/` as a JSON file and persists across browser reloads; history loads on startup
-- **Expandable result cards** — each query appears as a collapsed card showing the timestamp, date range, property count, and if filters were applied; click to expand the full table
-- **Lazy result loading** — full result rows are only fetched from disk when you actually open a card, keeping the history list fast regardless of how many queries are stored
-- **Error summary** — if any properties fail (incompatible fields, permissions, rate limits), the card shows a plain-English explanation of what went wrong without hiding the successful rows
-- **Comparison mode** — toggle "Compare" on the date picker to automatically set a previous-period range; runs both periods as sequential queries and shows an inline delta table with Δ and Δ% columns, color-coded green/red; rate metrics (e.g. bounce rate) are averaged across days while count metrics are summed
-- **Copy to clipboard** — copies the result table as tab-separated values with one click, ready to paste directly into Google Sheets, Excel, or Slack
-- **CSV export** — exports a flat table with property name, account name, date range, dimensions, and metrics per row; comparison exports include main, compare, Δ, and Δ% columns per metric
-- **JSON export** — structured export with metrics and dimensions in their own nested objects per row
-- **Delete** — remove a result card from the UI and delete its file from disk in one click
-- **Storage** — results live in `/storage/queries/` on your local filesystem; the only limit is your disk
+- **Multi-property queries** — run a single report across any combination of GA4 properties simultaneously; properties are grouped by account with collapsible headings and select-all per account
+- **Metrics & dimensions** — add any GA4 metric or dimension by name with live autocomplete pulled from the API; filter results by dimension value with exact, contains, begins with, ends with, and regexp matching
+- **Date ranges** — built-in presets (Last 7/28/90 days, This month, Last month, Year to date) plus custom ranges; all presets end on yesterday to match GA4's fully-processed data convention
+- **Comparison mode** — toggle Compare to run the previous period alongside your main query; results show an inline delta table with Δ and Δ% per metric, color-coded green/red
+- **Real-time streaming** — results arrive property by property over SSE with a live progress bar; quota errors are retried with exponential backoff automatically
+- **Query history** — every query persists to `/storage/queries/` and reloads on startup; cards lazy-load their rows so the UI stays fast regardless of history size
+- **Export** — CSV, JSON, and copy-to-clipboard (TSV) on every result card; comparison exports include main, compare, Δ, and Δ% columns per metric
 
 ---
 
