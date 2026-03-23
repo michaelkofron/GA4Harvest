@@ -26,6 +26,7 @@ Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in 
 - **Expandable result cards** — each query appears as a collapsed card showing the timestamp, date range, property count, and if filters were applied; click to expand the full table
 - **Lazy result loading** — full result rows are only fetched from disk when you actually open a card, keeping the history list fast regardless of how many queries are stored
 - **Error summary** — if any properties fail (incompatible fields, permissions, rate limits), the card shows a plain-English explanation of what went wrong without hiding the successful rows
+- **Copy to clipboard** — copies the result table as tab-separated values with one click, ready to paste directly into Google Sheets, Excel, or Slack
 - **CSV export** — exports a flat table with property name, account name, date range, dimensions, and metrics per row
 - **JSON export** — structured export with metrics and dimensions in their own nested objects per row
 - **Delete** — remove a result card from the UI and delete its file from disk in one click

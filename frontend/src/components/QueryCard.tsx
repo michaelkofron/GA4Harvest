@@ -56,11 +56,29 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
     setExpanded(e => !e)
   }
 
+  const [copied, setCopied] = useState(false)
+
   const handleExport = async (type: 'csv' | 'json') => {
     const results = localResults ?? await loadResults()
     const filename = `ga4_${item.id}`
     if (type === 'csv') downloadCSV(results, `${filename}.csv`)
     else downloadJSON(results, `${filename}.json`, item.metrics, item.dimensions)
+  }
+
+  const handleCopy = async () => {
+    const results = localResults ?? await loadResults()
+    if (!results.length) return
+    const cols = [
+      'property_name',
+      'account_name',
+      ...item.dimensions,
+      ...item.metrics,
+    ].filter(c => c in (results[0] ?? {}))
+    const rows = [cols, ...results.map(row => cols.map(c => row[c] ?? ''))]
+    const tsv = rows.map(r => r.join('\t')).join('\n')
+    await navigator.clipboard.writeText(tsv)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const results = localResults ?? []
@@ -177,6 +195,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+          <button className="btn-ghost" onClick={handleCopy} style={{ ...actionBtn, minWidth: 52 }}>{copied ? '✓' : 'Copy'}</button>
           <button className="btn-ghost" onClick={() => handleExport('csv')} style={actionBtn}>CSV</button>
           <button className="btn-ghost" onClick={() => handleExport('json')} style={actionBtn}>JSON</button>
           <button
