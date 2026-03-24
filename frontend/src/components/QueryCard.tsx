@@ -17,10 +17,21 @@ function fmt(v: unknown): string {
   if (v === null || v === undefined) return '—'
   if (typeof v === 'number') return v.toLocaleString()
   const s = String(v)
-  // GA4 date dimension returns YYYYMMDD – display as YYYY-MM-DD
-  if (/^\d{8}$/.test(s)) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
   const n = Number(s)
   return !isNaN(n) && s.trim() !== '' ? n.toLocaleString() : s
+}
+
+// Column-aware formatter for the table — handles GA4 date dimension formats
+function fmtCell(col: string, v: unknown): string {
+  if (v === null || v === undefined) return '—'
+  const s = String(v)
+  if (col === 'date' && /^\d{8}$/.test(s))
+    return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+  if (col === 'yearMonth' && /^\d{6}$/.test(s))
+    return `${s.slice(0, 4)}-${s.slice(4, 6)}`
+  if (col === 'yearWeek' && /^\d{6}$/.test(s))
+    return `${s.slice(0, 4)} W${s.slice(4, 6)}`
+  return fmt(v)
 }
 
 function classifyError(msg: string): string {
@@ -312,7 +323,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                         color: col === 'error' ? 'var(--error)' : col === 'account_name' ? 'var(--text-secondary)' : 'var(--text)',
                         fontWeight: item.metrics.includes(col) ? 500 : 400,
                       }}>
-                        {fmt(row[col])}
+                        {fmtCell(col, row[col])}
                       </td>
                     ))}
                   </tr>
