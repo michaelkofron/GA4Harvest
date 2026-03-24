@@ -1,6 +1,7 @@
 import os
 import json
 from pathlib import Path
+import re
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -98,8 +99,15 @@ def get_history():
     return history
 
 
+def _safe_query_id(query_id: str) -> str:
+    if not re.fullmatch(r'[A-Za-z0-9_\-]+', query_id):
+        raise HTTPException(status_code=400, detail="Invalid query ID")
+    return query_id
+
+
 @app.get("/api/history/{query_id}")
 def get_history_item(query_id: str):
+    query_id = _safe_query_id(query_id)
     """Returns a single stored query including its full results array."""
     f = STORAGE_DIR / f"{query_id}.json"
     if not f.exists():
@@ -109,6 +117,7 @@ def get_history_item(query_id: str):
 
 @app.put("/api/history/{query_id}")
 async def update_history_item(query_id: str, request: Request):
+    query_id = _safe_query_id(query_id)
     f = STORAGE_DIR / f"{query_id}.json"
     data = await request.json()
     f.write_text(json.dumps(data, indent=2))
@@ -117,6 +126,7 @@ async def update_history_item(query_id: str, request: Request):
 
 @app.delete("/api/history/{query_id}")
 def delete_history_item(query_id: str):
+    query_id = _safe_query_id(query_id)
     f = STORAGE_DIR / f"{query_id}.json"
     if f.exists():
         f.unlink()
