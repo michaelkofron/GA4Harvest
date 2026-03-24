@@ -140,6 +140,15 @@ export function downloadComparisonJSON(rows: ComparisonRow[], filename: string) 
 export function copyComparisonTSV(rows: ComparisonRow[]): string {
   if (!rows.length) return ''
   const keys = Object.keys(rows[0])
-  const lines = [keys, ...rows.map(r => keys.map(k => String(r[k] ?? '')))]
+  const lines = [
+    keys,
+    ...rows.map(r => keys.map(k => {
+      const v = r[k]
+      // delta_pct is stored as e.g. 3.5 (meaning 3.5%); divide by 100 so
+      // Excel receives 0.035 and displays it correctly when formatted as %
+      if (k.endsWith('_delta_pct') && typeof v === 'number') return String(v / 100)
+      return String(v ?? '')
+    })),
+  ]
   return lines.map(r => r.join('\t')).join('\n')
 }
