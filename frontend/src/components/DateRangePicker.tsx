@@ -63,10 +63,8 @@ export default function DateRangePicker({ startDate, endDate, onChange, onCompar
     if (compareActive === false && comparing) setComparing(false)
   }, [compareActive])
 
-  const mountedRef = useRef(false)
   useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; return }
-    setActivePreset(null)
+    if (clearPreset) setActivePreset(null)
   }, [clearPreset])
 
   useEffect(() => {
