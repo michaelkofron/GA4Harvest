@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
 import type { QueryHistoryItem, QueryRow } from '../types'
 import {
-  downloadCSV, downloadJSON,
-  buildComparisonRows, downloadComparisonCSV, downloadComparisonJSON, copyComparisonTSV,
+  downloadExcel, downloadJSON,
+  buildComparisonRows, downloadComparisonExcel, downloadComparisonJSON, copyComparisonTSV,
   type ComparisonRow,
 } from '../utils/export'
 
@@ -68,15 +68,15 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
     return buildComparisonRows(results, item.metrics, item.dimensions)
   }
 
-  const handleExport = async (type: 'csv' | 'json') => {
+  const handleExport = async (type: 'excel' | 'json') => {
     const filename = `ga4_${item.id}`
     if (isComparison) {
       const cmpRows = await getComparisonRows()
-      if (type === 'csv') downloadComparisonCSV(cmpRows, `${filename}_comparison.csv`)
+      if (type === 'excel') await downloadComparisonExcel(cmpRows, `${filename}_comparison.xlsx`)
       else downloadComparisonJSON(cmpRows, `${filename}_comparison.json`)
     } else {
       const results = localResults ?? await loadResults()
-      if (type === 'csv') downloadCSV(results, `${filename}.csv`)
+      if (type === 'excel') await downloadExcel(results, `${filename}.xlsx`)
       else downloadJSON(results, `${filename}.json`, item.metrics, item.dimensions)
     }
   }
@@ -220,7 +220,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
         {/* Actions */}
         <div className="card-actions" style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
           <button className="btn-ghost" onClick={handleCopy} style={{ ...actionBtn, minWidth: 52 }}>{copied ? '✓' : 'Copy'}</button>
-          <button className="btn-ghost" onClick={() => handleExport('csv')} style={actionBtn}>CSV</button>
+          <button className="btn-ghost" onClick={() => handleExport('excel')} style={actionBtn}>Excel</button>
           <button className="btn-ghost" onClick={() => handleExport('json')} style={actionBtn}>JSON</button>
           <button
             className="btn-danger"

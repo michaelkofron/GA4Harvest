@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs'
 import type { QueryRow } from '../types'
 
 function triggerDownload(content: string, mimeType: string, filename: string) {
@@ -151,4 +152,79 @@ export function copyComparisonTSV(rows: ComparisonRow[]): string {
     })),
   ]
   return lines.map(r => r.join('\t')).join('\n')
+}
+
+// ── Excel exports ─────────────────────────────────────────────────────────────
+
+// Standard Excel conditional-formatting palette
+const POS_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } }
+const NEG_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } }
+const POS_FONT: Partial<ExcelJS.Font> = { color: { argb: 'FF006100' } }
+const NEG_FONT: Partial<ExcelJS.Font> = { color: { argb: 'FF9C0006' } }
+
+async function triggerXlsxDownload(wb: ExcelJS.Workbook, filename: string) {
+  const buffer = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click()
+  document.body.removeChild(a); URL.revokeObjectURL(url)
+}
+
+export async function downloadExcel(rows: QueryRow[], filename: string) {
+  if (!rows.length) return
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Results')
+  const keys = Object.keys(rows[0]).filter(k => k !== '_period')
+
+  const header = ws.addRow(keys)
+  header.font = { bold: true }
+
+  rows.forEach(row => {
+    ws.addRow(keys.map(k => {
+      const v = row[k]
+      if (v === null || v === undefined) return ''
+      const n = Number(v)
+      return !isNaN(n) && String(v).trim() !== '' ? n : String(v)
+    }))
+  })
+
+  ws.columns.forEach(col => { col.width = 18 })
+  await triggerXlsxDownload(wb, filename)
+}
+
+export async function downloadComparisonExcel(rows: ComparisonRow[], filename: string) {
+  if (!rows.length) return
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Comparison')
+  const keys = Object.keys(rows[0])
+
+  const header = ws.addRow(keys)
+  header.font = { bold: true }
+
+  rows.forEach(row => {
+    const values = keys.map(k => {
+      const v = row[k]
+      if (v === null || v === undefined) return ''
+      const n = Number(v)
+      // store delta_pct as decimal so Excel % format works correctly
+      if (k.endsWith('_delta_pct') && !isNaN(n)) return n / 100
+      return !isNaN(n) && String(v ?? '').trim() !== '' ? n : String(v ?? '')
+    })
+    const dataRow = ws.addRow(values)
+
+    keys.forEach((k, ci) => {
+      if (!k.endsWith('_delta') && !k.endsWith('_delta_pct')) return
+      const v = row[k]
+      const n = typeof v === 'number' ? v : Number(v)
+      const cell = dataRow.getCell(ci + 1)
+      if (!isNaN(n) && n > 0) { cell.fill = POS_FILL; cell.font = POS_FONT }
+      else if (!isNaN(n) && n < 0) { cell.fill = NEG_FILL; cell.font = NEG_FONT }
+      if (k.endsWith('_delta_pct')) cell.numFmt = '0.00%'
+    })
+  })
+
+  ws.columns.forEach(col => { col.width = 18 })
+  await triggerXlsxDownload(wb, filename)
 }
