@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import type { QueryHistoryItem, QueryRow } from '../types'
+import { GRANULARITY_CARD_LABELS } from '../types'
 import {
   downloadExcel, downloadJSON,
   buildComparisonRows, downloadComparisonExcel, downloadComparisonJSON, copyComparisonTSV,
@@ -193,6 +194,11 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
             {item.comparison && (
               <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 11, fontWeight: 500, padding: '2px 7px', borderRadius: 20 }}>
                 vs {item.comparison.start_date} → {item.comparison.end_date}
+              </span>
+            )}
+            {item.time_series && (
+              <span style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20 }}>
+                {GRANULARITY_CARD_LABELS[item.time_series.granularity]}
               </span>
             )}
             {hasError && (

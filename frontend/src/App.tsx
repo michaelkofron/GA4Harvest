@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import TagInput from './components/TagInput'
 import DateRangePicker from './components/DateRangePicker'
 import QueryCard from './components/QueryCard'
-import type { DimensionFilter, FilterOperator, Metadata, Property, QueryHistoryItem, QueryRow } from './types'
+import type { DimensionFilter, FilterOperator, Granularity, Metadata, Property, QueryHistoryItem, QueryRow } from './types'
+import { GRANULARITY_LABELS, GRANULARITY_DIMENSION } from './types'
 
 // ── Sprout icon (inline SVG so fill color is controllable via CSS currentColor) ──
 function SproutIcon({ size = 20, style }: { size?: number; style?: React.CSSProperties }) {
@@ -27,6 +28,27 @@ function daysAgoStr(n: number) {
   d.setDate(d.getDate() - n)
   return d.toISOString().slice(0, 10)
 }
+function daysBetween(a: string, b: string) {
+  return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000)
+}
+
+function availableGranularities(start: string, end: string): Granularity[] {
+  const days = daysBetween(start, end) + 1
+  const out: Granularity[] = []
+  if (days > 1) out.push('day')
+  if (days >= 14) out.push('week')
+  if (days >= 60) out.push('month')
+  if (days >= 365) out.push('year')
+  return out
+}
+
+function defaultGranularity(start: string, end: string): Granularity {
+  const days = daysBetween(start, end) + 1
+  if (days >= 365) return 'month'
+  if (days >= 60) return 'week'
+  return 'day'
+}
+
 function groupByAccount(properties: Property[]): Map<string, Property[]> {
   const map = new Map<string, Property[]>()
   for (const p of properties) {
@@ -49,6 +71,7 @@ export default function App() {
   const [startDate, setStartDate] = useState(daysAgoStr(28))
   const [endDate, setEndDate] = useState(daysAgoStr(1))
   const [compareRange, setCompareRange] = useState<{ start: string; end: string } | null>(null)
+  const [timeSeries, setTimeSeries] = useState<{ granularity: Granularity } | null>(null)
   const [history, setHistory] = useState<QueryHistoryItem[]>([])
   const [filters, setFilters] = useState<DimensionFilter[]>([])
   const [matchMode, setMatchMode] = useState<'AND' | 'OR'>('AND')
@@ -194,6 +217,10 @@ export default function App() {
     const mainResults: QueryRow[] = []
     const compareResults: QueryRow[] = []
 
+    // Inject GA4 date dimension for time-series mode (prepended so it sorts first)
+    const tsDimension = timeSeries ? GRANULARITY_DIMENSION[timeSeries.granularity] : null
+    const queryDimensions = tsDimension ? [tsDimension, ...dimensions] : dimensions
+
     try {
       // ── Main query ──
       setProgress({ done: 0, total: selected.size, current: '', phase: 'Main' })
@@ -201,7 +228,7 @@ export default function App() {
         {
           query_id: id,
           property_ids: Array.from(selected),
-          metrics, dimensions,
+          metrics, dimensions: queryDimensions,
           filters: activeFilters,
           match_mode: matchMode,
           start_date: startDate,
@@ -220,7 +247,7 @@ export default function App() {
           {
             query_id: `${id}_compare`,
             property_ids: Array.from(selected),
-            metrics, dimensions,
+            metrics, dimensions: queryDimensions,
             filters: activeFilters,
             match_mode: matchMode,
             start_date: compareRange.start,
@@ -240,10 +267,11 @@ export default function App() {
           start_date: startDate,
           end_date: endDate,
           metrics: [...metrics],
-          dimensions: [...dimensions],
+          dimensions: queryDimensions,
           filters: activeFilters,
           match_mode: matchMode,
           comparison: compareRange ? { start_date: compareRange.start, end_date: compareRange.end } : undefined,
+          time_series: timeSeries ?? undefined,
           properties_queried: selected.size,
           results: allResults,
         }
@@ -526,9 +554,60 @@ export default function App() {
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
-              onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
-              onCompareChange={setCompareRange}
+              onChange={(s, e) => {
+                setStartDate(s)
+                setEndDate(e)
+                if (timeSeries) {
+                  const avail = availableGranularities(s, e)
+                  if (avail.length === 0) setTimeSeries(null)
+                  else if (!avail.includes(timeSeries.granularity)) setTimeSeries({ granularity: defaultGranularity(s, e) })
+                }
+              }}
+              onCompareChange={range => {
+                setCompareRange(range)
+                if (range !== null) setTimeSeries(null)
+              }}
+              compareActive={!timeSeries}
             />
+
+            {/* Time-series toggle */}
+            {availableGranularities(startDate, endDate).length > 0 && (
+              <button
+                onClick={() => {
+                  if (timeSeries) { setTimeSeries(null) }
+                  else { setCompareRange(null); setTimeSeries({ granularity: defaultGranularity(startDate, endDate) }) }
+                }}
+                style={{
+                  padding: '5px 10px',
+                  border: `1px solid ${timeSeries ? 'var(--primary)' : 'var(--border)'}`,
+                  borderRadius: 'var(--radius-sm)',
+                  background: timeSeries ? 'var(--primary-light)' : 'none',
+                  color: timeSeries ? 'var(--primary-dark)' : 'var(--text-secondary)',
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                {timeSeries ? 'Time-series ✕' : 'Time-series'}
+              </button>
+            )}
+
+            {/* Granularity chips */}
+            {timeSeries && availableGranularities(startDate, endDate).map(g => (
+              <button
+                key={g}
+                onClick={() => setTimeSeries({ granularity: g })}
+                style={{
+                  padding: '4px 10px',
+                  border: `1px solid ${timeSeries.granularity === g ? 'var(--primary)' : 'var(--border)'}`,
+                  borderRadius: 'var(--radius-sm)',
+                  background: timeSeries.granularity === g ? '#18181b' : 'none',
+                  color: timeSeries.granularity === g ? '#fff' : 'var(--text-secondary)',
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                {GRANULARITY_LABELS[g]}
+              </button>
+            ))}
+
             <div className="spacer" style={{ flex: 1 }} />
             <button
               className="run-btn"
