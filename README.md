@@ -17,7 +17,7 @@ Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in 
 - **Multi-property queries** — run a single report across any combination of GA4 properties simultaneously; properties are grouped by account with collapsible headings and select-all per account
 - **Metrics & dimensions** — add any GA4 metric or dimension by name with live autocomplete pulled from the API; filter results by dimension value with exact, contains, begins with, ends with, and regexp matching
 - **Date ranges** — built-in presets (Last 7/28/90 days, This month, Last month, Year to date) plus custom ranges; all presets end on yesterday to match GA4's fully-processed data convention
-- **Comparison mode** — toggle Compare to run the previous period alongside your main query; results show an inline delta table with Δ and Δ% per metric, color-coded green/red
+- **Comparison mode** — toggle Compare to run the previous period alongside your main query; results show an inline delta table with Δ and Δ% per metric, color-coded green/red; dimensions are fully supported — each unique property × dimension combination gets its own delta row
 - **Real-time streaming** — results arrive property by property over SSE with a live progress bar; quota errors are retried with exponential backoff automatically
 - **Query history** — every query persists to `/storage/queries/` and reloads on startup; cards lazy-load their rows so the UI stays fast regardless of history size
 - **Export** — CSV, JSON, and copy-to-clipboard (TSV) on every result card; comparison exports include main, compare, Δ, and Δ% columns per metric
