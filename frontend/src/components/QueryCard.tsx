@@ -93,8 +93,11 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
       else downloadComparisonJSON(cmpRows, `${filename}_comparison.json`)
     } else {
       const results = localResults ?? await loadResults()
-      if (type === 'excel') await downloadExcel(results, `${filename}.xlsx`)
-      else downloadJSON(results, `${filename}.json`, item.metrics, item.dimensions)
+      const rows = item.time_series
+        ? results.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'start_date' && k !== 'end_date')))
+        : results
+      if (type === 'excel') await downloadExcel(rows, `${filename}.xlsx`)
+      else downloadJSON(rows, `${filename}.json`, item.metrics, item.dimensions)
     }
   }
 
