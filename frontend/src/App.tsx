@@ -76,7 +76,13 @@ function snapToGranularity(start: string, end: string, granularity: Granularity)
   }
   if (granularity === 'month') {
     const [sy, sm] = start.split('-').map(Number)
-    const [ey, em] = end.split('-').map(Number)
+    let [ey, em] = end.split('-').map(Number)
+    // If the end month hasn't finished yet, snap back to the last complete month
+    const today = new Date()
+    if (ey * 12 + em >= today.getFullYear() * 12 + (today.getMonth() + 1)) {
+      em -= 1
+      if (em === 0) { em = 12; ey -= 1 }
+    }
     const lastDay = new Date(ey, em, 0).getDate()
     return {
       start: `${sy}-${String(sm).padStart(2, '0')}-01`,
@@ -84,7 +90,12 @@ function snapToGranularity(start: string, end: string, granularity: Granularity)
     }
   }
   if (granularity === 'year') {
-    return { start: `${start.slice(0, 4)}-01-01`, end: `${end.slice(0, 4)}-12-31` }
+    // Same idea: don't snap end year forward if that year isn't over yet
+    const snapEndYear = end.slice(0, 4)
+    const today = new Date()
+    const endYear = parseInt(snapEndYear)
+    const safeEndYear = endYear >= today.getFullYear() ? today.getFullYear() - 1 : endYear
+    return { start: `${start.slice(0, 4)}-01-01`, end: `${safeEndYear}-12-31` }
   }
   return { start, end }
 }
