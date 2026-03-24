@@ -3,7 +3,7 @@ import TagInput from './components/TagInput'
 import DateRangePicker from './components/DateRangePicker'
 import QueryCard from './components/QueryCard'
 import type { DimensionFilter, FilterOperator, Granularity, Metadata, Property, QueryHistoryItem, QueryRow } from './types'
-import { GRANULARITY_LABELS, GRANULARITY_DIMENSION } from './types'
+import { GRANULARITY_CARD_LABELS, GRANULARITY_DIMENSION } from './types'
 
 // ── Sprout icon (inline SVG so fill color is controllable via CSS currentColor) ──
 function SproutIcon({ size = 20, style }: { size?: number; style?: React.CSSProperties }) {
@@ -604,7 +604,7 @@ export default function App() {
                   fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
-                {GRANULARITY_LABELS[g]}
+                {GRANULARITY_CARD_LABELS[g]}
               </button>
             ))}
 

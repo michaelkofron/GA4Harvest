@@ -31,6 +31,8 @@ function fmtCell(col: string, v: unknown): string {
     return `${s.slice(0, 4)}-${s.slice(4, 6)}`
   if (col === 'yearWeek' && /^\d{6}$/.test(s))
     return `${s.slice(0, 4)} W${s.slice(4, 6)}`
+  if (col === 'year' && /^\d{4}$/.test(s))
+    return s
   return fmt(v)
 }
 
