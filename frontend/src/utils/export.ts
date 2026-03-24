@@ -66,9 +66,8 @@ function isRateMetric(metric: string, rows: QueryRow[]): boolean {
   return vals.every(v => { const s = String(v); const n = parseFloat(s); return s.includes('.') && n >= 0 && n < 1 })
 }
 
-function aggregate(rows: QueryRow[], prop: string, metric: string, rate: boolean): number | null {
-  const propRows = rows.filter(r => String(r.property_name) === prop)
-  const vals = propRows.map(r => parseFloat(String(r[metric] ?? ''))).filter(v => !isNaN(v))
+function aggregateRows(rows: QueryRow[], metric: string, rate: boolean): number | null {
+  const vals = rows.map(r => parseFloat(String(r[metric] ?? ''))).filter(v => !isNaN(v))
   if (!vals.length) return null
   return rate
     ? vals.reduce((a, b) => a + b, 0) / vals.length
@@ -78,19 +77,35 @@ function aggregate(rows: QueryRow[], prop: string, metric: string, rate: boolean
 export function buildComparisonRows(
   results: QueryRow[],
   metrics: string[],
+  dimensions: string[] = [],
 ): ComparisonRow[] {
   const mainRows = results.filter(r => r._period !== 'compare')
   const compareRows = results.filter(r => r._period === 'compare')
-  const properties = [...new Set(mainRows.map(r => String(r.property_name ?? '')))]
 
-  return properties.map(prop => {
-    const accountName = String(mainRows.find(r => String(r.property_name) === prop)?.account_name ?? '')
-    const row: ComparisonRow = { property_name: prop, account_name: accountName }
+  const SEP = '\u0000'
+  const makeKey = (row: QueryRow) =>
+    [String(row.property_name ?? ''), ...dimensions.map(d => String(row[d] ?? ''))].join(SEP)
+
+  const uniqueKeys = [...new Set(mainRows.map(makeKey))]
+
+  return uniqueKeys.map(key => {
+    const [propName, ...dimVals] = key.split(SEP)
+    const dimMap = Object.fromEntries(dimensions.map((d, i) => [d, dimVals[i] ?? '']))
+
+    const matchesKey = (row: QueryRow) =>
+      String(row.property_name ?? '') === propName &&
+      dimensions.every(d => String(row[d] ?? '') === dimMap[d])
+
+    const propMain = mainRows.filter(matchesKey)
+    const propCmp = compareRows.filter(matchesKey)
+
+    const accountName = String(propMain[0]?.account_name ?? '')
+    const row: ComparisonRow = { property_name: propName, account_name: accountName, ...dimMap }
 
     for (const m of metrics) {
       const rate = isRateMetric(m, results)
-      const main = aggregate(mainRows, prop, m, rate)
-      const cmp = aggregate(compareRows, prop, m, rate)
+      const main = aggregateRows(propMain, m, rate)
+      const cmp = aggregateRows(propCmp, m, rate)
       const delta = main !== null && cmp !== null ? main - cmp : null
       const deltaPct = delta !== null && cmp !== null && cmp !== 0
         ? (delta / Math.abs(cmp)) * 100 : null

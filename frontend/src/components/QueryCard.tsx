@@ -65,7 +65,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
 
   const getComparisonRows = async (): Promise<ComparisonRow[]> => {
     const results = localResults ?? await loadResults()
-    return buildComparisonRows(results, item.metrics)
+    return buildComparisonRows(results, item.metrics, item.dimensions)
   }
 
   const handleExport = async (type: 'csv' | 'json') => {
@@ -265,7 +265,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
             Loading results…
           </div>
         ) : isComparison ? (
-          <ComparisonTable results={results} metrics={item.metrics} comparison={item.comparison!} />
+          <ComparisonTable results={results} metrics={item.metrics} dimensions={item.dimensions} comparison={item.comparison!} />
         ) : (
           <div style={{ borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -308,12 +308,13 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
   )
 }
 
-function ComparisonTable({ results, metrics, comparison }: {
+function ComparisonTable({ results, metrics, dimensions, comparison }: {
   results: QueryRow[]
   metrics: string[]
+  dimensions: string[]
   comparison: { start_date: string; end_date: string }
 }) {
-  const rows = buildComparisonRows(results, metrics)
+  const rows = buildComparisonRows(results, metrics, dimensions)
   if (!rows.length) return null
 
   const fmtVal = (v: string | number | null) => {
@@ -350,6 +351,9 @@ function ComparisonTable({ results, metrics, comparison }: {
           <tr style={{ background: '#f8fafc' }}>
             <th style={{ ...cmpTh, textAlign: 'left' }}>Property</th>
             <th style={{ ...cmpTh, textAlign: 'left', color: 'var(--text-muted)' }}>Account</th>
+            {dimensions.map(d => (
+              <th key={d} style={{ ...cmpTh, textAlign: 'left' }}>{d}</th>
+            ))}
             {metrics.map(m => (
               <>
                 <th key={`${m}-main`} style={{ ...cmpTh, borderLeft: '2px solid var(--border)' }}>Main</th>
@@ -360,7 +364,7 @@ function ComparisonTable({ results, metrics, comparison }: {
             ))}
           </tr>
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
-            <th style={{ ...cmpSubTh, textAlign: 'left' }} colSpan={2} />
+            <th style={{ ...cmpSubTh, textAlign: 'left' }} colSpan={2 + dimensions.length} />
             {metrics.map(m => (
               <th key={m} colSpan={4} style={{ ...cmpSubTh, borderLeft: '2px solid var(--border)', textAlign: 'center', color: 'var(--text-secondary)' }}>{m}</th>
             ))}
@@ -371,6 +375,9 @@ function ComparisonTable({ results, metrics, comparison }: {
             <tr key={i} style={{ background: i % 2 === 0 ? 'var(--surface)' : '#fafbfc' }}>
               <td style={{ ...cmpTd, fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.property_name}</td>
               <td style={{ ...cmpTd, color: 'var(--text-secondary)' }}>{row.account_name}</td>
+              {dimensions.map(d => (
+                <td key={d} style={{ ...cmpTd, color: 'var(--text-secondary)' }}>{String(row[d] ?? '—')}</td>
+              ))}
               {metrics.map(m => {
                 const delta = row[`${m}_delta`] as number | null
                 const colour = delta === null ? 'inherit' : delta >= 0 ? '#16a34a' : '#dc2626'
