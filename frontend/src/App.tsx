@@ -63,12 +63,16 @@ function isAligned(start: string, end: string, granularity: Granularity): boolea
 }
 
 function snapToGranularity(start: string, end: string, granularity: Granularity): { start: string; end: string } {
+  // Parse as local date to avoid UTC-midnight → wrong-day-in-negative-offset-timezones
+  const localDate = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d) }
+  const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   if (granularity === 'week') {
     const days = daysBetween(start, end) + 1
     const targetDays = Math.max(7, Math.round(days / 7) * 7)
-    const e = new Date(start)
+    const e = localDate(start)
     e.setDate(e.getDate() + targetDays - 1)
-    return { start, end: e.toISOString().slice(0, 10) }
+    return { start, end: fmtDate(e) }
   }
   if (granularity === 'month') {
     const [sy, sm] = start.split('-').map(Number)
