@@ -94,7 +94,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
     } else {
       const results = localResults ?? await loadResults()
       const rows = item.time_series
-        ? results.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'start_date' && k !== 'end_date')))
+        ? sortTimeSeries(results).map(r => Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'start_date' && k !== 'end_date')))
         : results
       if (type === 'excel') await downloadExcel(rows, `${filename}.xlsx`)
       else downloadJSON(rows, `${filename}.json`, item.metrics, item.dimensions)
@@ -109,9 +109,10 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
     } else {
       const results = localResults ?? await loadResults()
       if (!results.length) return
+      const sorted = item.time_series ? sortTimeSeries(results) : results
       const cols = ['property_name', 'account_name', ...item.dimensions, ...item.metrics]
         .filter(c => c in (results[0] ?? {}))
-      const rows = [cols, ...results.map(row => cols.map(c => row[c] ?? ''))]
+      const rows = [cols, ...sorted.map(row => cols.map(c => row[c] ?? ''))]
       await navigator.clipboard.writeText(rows.map(r => r.join('\t')).join('\n'))
     }
     setCopied(true)
@@ -119,15 +120,18 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
   }
 
   const results = localResults ?? []
-  const tableRows = item.time_series
-    ? [...results].sort((a, b) => {
-        const dim = GRANULARITY_DIMENSION[item.time_series!.granularity]
-        const da = String(a[dim] ?? ''), db = String(b[dim] ?? '')
-        if (da !== db) return da < db ? -1 : 1
-        const pa = String(a.property_name ?? ''), pb = String(b.property_name ?? '')
-        return pa < pb ? -1 : pa > pb ? 1 : 0
-      })
-    : results
+
+  const sortTimeSeries = (rows: QueryRow[]) => {
+    const dim = GRANULARITY_DIMENSION[item.time_series!.granularity]
+    return [...rows].sort((a, b) => {
+      const pa = String(a.property_name ?? ''), pb = String(b.property_name ?? '')
+      if (pa !== pb) return pa < pb ? -1 : 1
+      const da = String(a[dim] ?? ''), db = String(b[dim] ?? '')
+      return da < db ? -1 : da > db ? 1 : 0
+    })
+  }
+
+  const tableRows = item.time_series ? sortTimeSeries(results) : results
   const hasError = results.some(r => r.error)
   const sampleRow: QueryRow = results[0] ?? {}
   const tableCols = [
