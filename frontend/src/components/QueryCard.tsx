@@ -16,8 +16,11 @@ interface Props {
 function fmt(v: unknown): string {
   if (v === null || v === undefined) return '—'
   if (typeof v === 'number') return v.toLocaleString()
-  const n = Number(v)
-  return !isNaN(n) && String(v).trim() !== '' ? n.toLocaleString() : String(v)
+  const s = String(v)
+  // GA4 date dimension returns YYYYMMDD – display as YYYY-MM-DD
+  if (/^\d{8}$/.test(s)) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+  const n = Number(s)
+  return !isNaN(n) && s.trim() !== '' ? n.toLocaleString() : s
 }
 
 function classifyError(msg: string): string {
