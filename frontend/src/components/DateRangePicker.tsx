@@ -6,6 +6,7 @@ interface DateRangePickerProps {
   onChange: (start: string, end: string, preset: string | null) => void
   onCompareChange?: (range: { start: string; end: string } | null) => void
   compareActive?: boolean  // controlled externally; false forces compare off
+  clearPreset?: number     // increment to clear the active preset label
 }
 
 function daysAgoStr(n: number) {
@@ -49,7 +50,7 @@ const PRESETS = [
   { label: 'Year to date', start: () => `${new Date().getFullYear()}-01-01`, end: () => daysAgoStr(1) },
 ]
 
-export default function DateRangePicker({ startDate, endDate, onChange, onCompareChange, compareActive }: DateRangePickerProps) {
+export default function DateRangePicker({ startDate, endDate, onChange, onCompareChange, compareActive, clearPreset }: DateRangePickerProps) {
   const [open, setOpen] = useState(false)
   const [activePreset, setActivePreset] = useState<string | null>('Last 28 days')
   const [draft, setDraft] = useState({ start: startDate, end: endDate })
@@ -61,6 +62,12 @@ export default function DateRangePicker({ startDate, endDate, onChange, onCompar
   useEffect(() => {
     if (compareActive === false && comparing) setComparing(false)
   }, [compareActive])
+
+  const mountedRef = useRef(false)
+  useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return }
+    setActivePreset(null)
+  }, [clearPreset])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

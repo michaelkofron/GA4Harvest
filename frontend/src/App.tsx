@@ -158,6 +158,7 @@ export default function App() {
   const [endDate, setEndDate] = useState(daysAgoStr(1))
   const [compareRange, setCompareRange] = useState<{ start: string; end: string } | null>(null)
   const [timeSeries, setTimeSeries] = useState<{ granularity: Granularity } | null>(null)
+  const [snapCount, setSnapCount] = useState(0)
   const [history, setHistory] = useState<QueryHistoryItem[]>([])
   const [filters, setFilters] = useState<DimensionFilter[]>([])
   const [matchMode, setMatchMode] = useState<'AND' | 'OR'>('AND')
@@ -654,6 +655,7 @@ export default function App() {
                 if (range !== null) setTimeSeries(null)
               }}
               compareActive={!timeSeries}
+              clearPreset={snapCount}
             />
 
             {/* Time-series toggle */}
@@ -753,7 +755,7 @@ export default function App() {
                   ⚠ {alignmentWarning(startDate, endDate, timeSeries.granularity)}
                 </span>
                 <button
-                  onClick={() => { setStartDate(snapped.start); setEndDate(snapped.end) }}
+                  onClick={() => { setStartDate(snapped.start); setEndDate(snapped.end); setSnapCount(c => c + 1) }}
                   style={{
                     flexShrink: 0, padding: '4px 10px',
                     background: '#92400e', color: '#fff', border: 'none',
