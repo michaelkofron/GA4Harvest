@@ -34,6 +34,10 @@ export const GRANULARITY_CARD_LABELS: Record<Granularity, string> = {
   day: 'day-by-day', week: 'week-by-week', month: 'month-by-month', year: 'year-by-year',
 }
 
+export const GRANULARITY_CHIP_LABELS: Record<Granularity, string> = {
+  day: 'by day', week: 'by week', month: 'by month', year: 'by year',
+}
+
 // The GA4 dimension that produces each granularity
 export const GRANULARITY_DIMENSION: Record<Granularity, string> = {
   day: 'date', week: 'yearWeek', month: 'yearMonth', year: 'year',
