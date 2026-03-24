@@ -89,6 +89,12 @@ function snapToGranularity(start: string, end: string, granularity: Granularity)
   return { start, end }
 }
 
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0])
+}
+
 function alignmentWarning(start: string, end: string, granularity: Granularity): string {
   if (granularity === 'week') {
     const rem = (daysBetween(start, end) + 1) % 7
@@ -100,8 +106,8 @@ function alignmentWarning(start: string, end: string, granularity: Granularity):
     const lastDay = new Date(ey, em, 0).getDate()
     const endDay = parseInt(end.split('-')[2])
     const parts = []
-    if (startDay !== 1) parts.push(`starts on the ${startDay}th`)
-    if (endDay !== lastDay) parts.push(`ends on the ${endDay}th (not the ${lastDay}th)`)
+    if (startDay !== 1) parts.push(`starts on the ${ordinal(startDay)}`)
+    if (endDay !== lastDay) parts.push(`ends on the ${ordinal(endDay)} (not the ${ordinal(lastDay)})`)
     return `Range ${parts.join(' and ')} — not aligned to complete months.`
   }
   if (granularity === 'year') return 'Range doesn\'t start on Jan 1 or end on Dec 31.'
