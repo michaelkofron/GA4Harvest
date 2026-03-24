@@ -130,8 +130,24 @@ function snapLabel(start: string, end: string, granularity: Granularity): string
     const weeks = Math.max(1, Math.round((daysBetween(start, end) + 1) / 7))
     return `Snap to ${weeks} week${weeks !== 1 ? 's' : ''}`
   }
-  if (granularity === 'month') return 'Snap to full months'
-  if (granularity === 'year') return 'Snap to full years'
+  if (granularity === 'month') {
+    const [sy, sm] = start.split('-').map(Number)
+    let [ey, em] = end.split('-').map(Number)
+    const today = new Date()
+    if (ey * 12 + em >= today.getFullYear() * 12 + (today.getMonth() + 1)) {
+      em -= 1; if (em === 0) { em = 12; ey -= 1 }
+    }
+    const months = (ey - sy) * 12 + (em - sm) + 1
+    return `Snap to ${months} month${months !== 1 ? 's' : ''}`
+  }
+  if (granularity === 'year') {
+    const today = new Date()
+    const startYear = parseInt(start.slice(0, 4))
+    const endYear = parseInt(end.slice(0, 4))
+    const safeEndYear = endYear >= today.getFullYear() ? today.getFullYear() - 1 : endYear
+    const years = safeEndYear - startYear + 1
+    return `Snap to ${years} year${years !== 1 ? 's' : ''}`
+  }
   return 'Snap'
 }
 
