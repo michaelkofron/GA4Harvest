@@ -49,6 +49,71 @@ function defaultGranularity(start: string, end: string): Granularity {
   return 'day'
 }
 
+function isAligned(start: string, end: string, granularity: Granularity): boolean {
+  if (granularity === 'day') return true
+  if (granularity === 'week') return (daysBetween(start, end) + 1) % 7 === 0
+  if (granularity === 'month') {
+    const startDay = parseInt(start.split('-')[2])
+    const [ey, em] = end.split('-').map(Number)
+    const lastDay = new Date(ey, em, 0).getDate()
+    return startDay === 1 && parseInt(end.split('-')[2]) === lastDay
+  }
+  if (granularity === 'year') return start.slice(5) === '01-01' && end.slice(5) === '12-31'
+  return true
+}
+
+function snapToGranularity(start: string, end: string, granularity: Granularity): { start: string; end: string } {
+  if (granularity === 'week') {
+    const days = daysBetween(start, end) + 1
+    const targetDays = Math.max(7, Math.round(days / 7) * 7)
+    const e = new Date(start)
+    e.setDate(e.getDate() + targetDays - 1)
+    return { start, end: e.toISOString().slice(0, 10) }
+  }
+  if (granularity === 'month') {
+    const [sy, sm] = start.split('-').map(Number)
+    const [ey, em] = end.split('-').map(Number)
+    const lastDay = new Date(ey, em, 0).getDate()
+    return {
+      start: `${sy}-${String(sm).padStart(2, '0')}-01`,
+      end: `${ey}-${String(em).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+    }
+  }
+  if (granularity === 'year') {
+    return { start: `${start.slice(0, 4)}-01-01`, end: `${end.slice(0, 4)}-12-31` }
+  }
+  return { start, end }
+}
+
+function alignmentWarning(start: string, end: string, granularity: Granularity): string {
+  if (granularity === 'week') {
+    const rem = (daysBetween(start, end) + 1) % 7
+    return `Range has ${rem} extra day${rem !== 1 ? 's' : ''} beyond complete weeks.`
+  }
+  if (granularity === 'month') {
+    const startDay = parseInt(start.split('-')[2])
+    const [ey, em] = end.split('-').map(Number)
+    const lastDay = new Date(ey, em, 0).getDate()
+    const endDay = parseInt(end.split('-')[2])
+    const parts = []
+    if (startDay !== 1) parts.push(`starts on the ${startDay}th`)
+    if (endDay !== lastDay) parts.push(`ends on the ${endDay}th (not the ${lastDay}th)`)
+    return `Range ${parts.join(' and ')} — not aligned to complete months.`
+  }
+  if (granularity === 'year') return 'Range doesn\'t start on Jan 1 or end on Dec 31.'
+  return ''
+}
+
+function snapLabel(start: string, end: string, granularity: Granularity): string {
+  if (granularity === 'week') {
+    const weeks = Math.max(1, Math.round((daysBetween(start, end) + 1) / 7))
+    return `Snap to ${weeks} week${weeks !== 1 ? 's' : ''}`
+  }
+  if (granularity === 'month') return 'Snap to full months'
+  if (granularity === 'year') return 'Snap to full years'
+  return 'Snap'
+}
+
 function groupByAccount(properties: Property[]): Map<string, Property[]> {
   const map = new Map<string, Property[]>()
   for (const p of properties) {
@@ -653,6 +718,32 @@ export default function App() {
               )}
             </button>
           </div>
+
+          {/* Alignment warning */}
+          {timeSeries && timeSeries.granularity !== 'day' && !isAligned(startDate, endDate, timeSeries.granularity) && (() => {
+            const snapped = snapToGranularity(startDate, endDate, timeSeries.granularity)
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                background: '#fffbeb', border: '1px solid #fde68a',
+                borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: 12,
+              }}>
+                <span style={{ color: '#92400e' }}>
+                  ⚠ {alignmentWarning(startDate, endDate, timeSeries.granularity)}
+                </span>
+                <button
+                  onClick={() => { setStartDate(snapped.start); setEndDate(snapped.end) }}
+                  style={{
+                    flexShrink: 0, padding: '4px 10px',
+                    background: '#92400e', color: '#fff', border: 'none',
+                    borderRadius: 'var(--radius-xs)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {snapLabel(startDate, endDate, timeSeries.granularity)}
+                </button>
+              </div>
+            )
+          })()}
 
           {/* Progress bar */}
           {loading && progress && (
