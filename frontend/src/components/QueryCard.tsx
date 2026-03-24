@@ -136,6 +136,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
         }}
         onClick={handleToggle}
       >
+        <div className="card-header-top" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
         {/* Expand toggle */}
         <div style={{
           width: 22,
@@ -214,9 +215,10 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
             )}
           </div>
         </div>
+        </div>{/* /card-header-top */}
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+        <div className="card-actions" style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
           <button className="btn-ghost" onClick={handleCopy} style={{ ...actionBtn, minWidth: 52 }}>{copied ? '✓' : 'Copy'}</button>
           <button className="btn-ghost" onClick={() => handleExport('csv')} style={actionBtn}>CSV</button>
           <button className="btn-ghost" onClick={() => handleExport('json')} style={actionBtn}>JSON</button>

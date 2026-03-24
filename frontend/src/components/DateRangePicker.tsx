@@ -142,14 +142,14 @@ export default function DateRangePicker({ startDate, endDate, onChange, onCompar
 
       {/* Dropdown */}
       {open && (
-        <div style={{
+        <div className="date-picker-dropdown" style={{
           position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 300,
           background: 'var(--surface)', border: '1px solid var(--border)',
           borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-md)',
           display: 'flex', minWidth: comparing ? 560 : 420,
         }}>
           {/* Presets */}
-          <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', padding: '8px 0', minWidth: 150 }}>
+          <div className="date-picker-presets" style={{ display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', padding: '8px 0', minWidth: 150 }}>
             {PRESETS.map(p => (
               <button
                 key={p.label}

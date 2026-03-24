@@ -277,7 +277,7 @@ export default function App() {
         flexShrink: 0,
         borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
-        <div style={{ ...container, display: 'flex', alignItems: 'center', height: 54, gap: 10 }}>
+        <div className="app-container" style={{ ...container, display: 'flex', alignItems: 'center', height: 54, gap: 10 }}>
           <SproutIcon size={19} />
           <span style={{ fontWeight: 650, fontSize: 15, letterSpacing: '-0.025em', color: '#fff' }}>GA4Harvest</span>
           {history.length > 0 && (
@@ -302,7 +302,7 @@ export default function App() {
         background: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
       }}>
-        <div style={{ ...container, padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div className="app-container" style={{ ...container, padding: '20px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
           {/* Properties */}
           <div>
@@ -414,7 +414,7 @@ export default function App() {
           </div>
 
           {/* Metrics + Dimensions */}
-          <div style={{ display: 'flex', gap: 14 }}>
+          <div className="field-row" style={{ display: 'flex', gap: 14 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={label}>Metrics</div>
               <TagInput
@@ -480,7 +480,7 @@ export default function App() {
               {filters.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 192, overflowY: 'auto' }}>
                   {filters.map((f, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div key={i} className="filter-entry" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <select
                         value={f.dimension}
                         onChange={e => updateFilter(i, { dimension: e.target.value })}
@@ -521,7 +521,7 @@ export default function App() {
           )}
 
           {/* Date range + Run */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="date-run-row" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div style={label}>Date range</div>
             <DateRangePicker
               startDate={startDate}
@@ -529,8 +529,9 @@ export default function App() {
               onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
               onCompareChange={setCompareRange}
             />
-            <div style={{ flex: 1 }} />
+            <div className="spacer" style={{ flex: 1 }} />
             <button
+              className="run-btn"
               onClick={runQuery}
               disabled={!canRun}
               style={{
@@ -626,7 +627,7 @@ export default function App() {
 
       {/* ── History ── */}
       <div style={{ paddingTop: 24, paddingBottom: 40 }}>
-        <div style={container}>
+        <div className="app-container" style={container}>
           {history.length === 0 ? (
             <div style={{
               display: 'flex',

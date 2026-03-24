@@ -63,6 +63,61 @@ select:focus {
 
 button { font-family: inherit; cursor: pointer; }
 
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .app-container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .field-row {
+    flex-direction: column !important;
+  }
+  .date-run-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .date-run-row .spacer { display: none !important; }
+  .run-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .filter-entry { flex-wrap: wrap !important; }
+  .filter-entry select { flex: 1 1 calc(50% - 6px) !important; }
+  .filter-entry input[type="text"] { flex: 1 1 100% !important; min-width: 0 !important; }
+  .card-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .card-actions {
+    border-top: 1px solid var(--border-subtle) !important;
+    padding-top: 8px !important;
+    justify-content: flex-end !important;
+  }
+  .date-picker-dropdown {
+    min-width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    flex-direction: column !important;
+  }
+  .date-picker-presets {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 8px !important;
+    min-width: unset !important;
+  }
+  .date-picker-presets button {
+    flex: 1 1 auto !important;
+    text-align: center !important;
+    min-width: 100px !important;
+    border-radius: var(--radius-xs) !important;
+  }
+}
+
 .btn-ghost:hover { background: var(--primary-light) !important; color: var(--primary-dark) !important; border-color: #c4c4f0 !important; }
 .btn-danger:hover { background: #fef2f2 !important; color: var(--error) !important; border-color: #fecaca !important; }
 .account-row:hover { background: #f4f4f6 !important; }
