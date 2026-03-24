@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import type { QueryHistoryItem, QueryRow } from '../types'
-import { GRANULARITY_CARD_LABELS } from '../types'
+import { GRANULARITY_CARD_LABELS, GRANULARITY_DIMENSION } from '../types'
 import {
   downloadExcel, downloadJSON,
   buildComparisonRows, downloadComparisonExcel, downloadComparisonJSON, copyComparisonTSV,
@@ -103,6 +103,15 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
   }
 
   const results = localResults ?? []
+  const tableRows = item.time_series
+    ? [...results].sort((a, b) => {
+        const dim = GRANULARITY_DIMENSION[item.time_series!.granularity]
+        const da = String(a[dim] ?? ''), db = String(b[dim] ?? '')
+        if (da !== db) return da < db ? -1 : 1
+        const pa = String(a.property_name ?? ''), pb = String(b.property_name ?? '')
+        return pa < pb ? -1 : pa > pb ? 1 : 0
+      })
+    : results
   const hasError = results.some(r => r.error)
   const sampleRow: QueryRow = results[0] ?? {}
   const tableCols = [
@@ -294,7 +303,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
                 </tr>
               </thead>
               <tbody>
-                {results.map((row, i) => (
+                {tableRows.map((row, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? 'var(--surface)' : '#fafbfc' }}>
                     {tableCols.map(col => (
                       <td key={col} style={{
