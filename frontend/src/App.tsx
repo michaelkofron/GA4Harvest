@@ -360,6 +360,9 @@ export default function App() {
           row => compareResults.push({ ...row, _period: 'compare' }),
           (done, total, current) => setProgress({ done, total, current, phase: 'Compare' }),
         )
+        // Artifact cleanup — the streaming backend writes a redundant _compare file;
+        // the merged result is saved below via PUT so this file is no longer needed.
+        fetch(`/api/history/${id}_compare`, { method: 'DELETE' }).catch(() => {})
       }
 
       const allResults = [...mainResults, ...compareResults]
