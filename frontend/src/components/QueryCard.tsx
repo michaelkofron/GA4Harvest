@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { QueryHistoryItem, QueryRow } from '../types'
 import { GRANULARITY_CARD_LABELS, GRANULARITY_DIMENSION } from '../types'
 import {
@@ -78,7 +78,16 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
   }
 
   const [copied, setCopied] = useState(false)
+  const [tableExpanded, setTableExpanded] = useState(false)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+  const tableContainerRef = useRef<HTMLDivElement>(null)
   const isComparison = !!item.comparison
+
+  useEffect(() => {
+    if (!expanded || tableExpanded) return
+    const el = tableContainerRef.current
+    if (el) setIsOverflowing(el.scrollHeight > el.clientHeight + 1)
+  }, [expanded, tableExpanded, localResults])
 
   const getComparisonRows = async (): Promise<ComparisonRow[]> => {
     const results = localResults ?? await loadResults()
@@ -302,44 +311,61 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
           <div style={{ borderTop: '1px solid var(--border)', padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
             Loading results…
           </div>
-        ) : isComparison ? (
-          <ComparisonTable results={results} metrics={item.metrics} dimensions={item.dimensions} comparison={item.comparison!} />
         ) : (
-          <div style={{ borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: '#f8fafc' }}>
-                  {tableCols.map(col => (
-                    <th key={col} style={{
-                      padding: '9px 14px',
-                      textAlign: item.metrics.includes(col) ? 'right' : 'left',
-                      fontWeight: 600, fontSize: 11, textTransform: 'uppercase',
-                      letterSpacing: '0.05em', color: 'var(--text-secondary)',
-                      borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
-                    }}>
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tableRows.map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? 'var(--surface)' : '#fafbfc' }}>
-                    {tableCols.map(col => (
-                      <td key={col} style={{
-                        padding: '9px 14px', borderBottom: '1px solid #f1f5f9',
-                        textAlign: item.metrics.includes(col) ? 'right' : 'left',
-                        color: col === 'error' ? 'var(--error)' : col === 'account_name' ? 'var(--text-secondary)' : 'var(--text)',
-                        fontWeight: item.metrics.includes(col) ? 500 : 400,
-                      }}>
-                        {fmtCell(col, row[col])}
-                      </td>
+          <>
+            {isComparison ? (
+              <div ref={tableContainerRef} style={{ overflow: 'auto', maxHeight: tableExpanded ? undefined : 360 }}>
+                <ComparisonTable results={results} metrics={item.metrics} dimensions={item.dimensions} comparison={item.comparison!} />
+              </div>
+            ) : (
+              <div ref={tableContainerRef} style={{ borderTop: '1px solid var(--border)', overflow: 'auto', maxHeight: tableExpanded ? undefined : 360 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc' }}>
+                      {tableCols.map(col => (
+                        <th key={col} style={{
+                          padding: '9px 14px',
+                          textAlign: item.metrics.includes(col) ? 'right' : 'left',
+                          fontWeight: 600, fontSize: 11, textTransform: 'uppercase',
+                          letterSpacing: '0.05em', color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
+                        }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((row, i) => (
+                      <tr key={i} style={{ background: i % 2 === 0 ? 'var(--surface)' : '#fafbfc' }}>
+                        {tableCols.map(col => (
+                          <td key={col} style={{
+                            padding: '9px 14px', borderBottom: '1px solid #f1f5f9',
+                            textAlign: item.metrics.includes(col) ? 'right' : 'left',
+                            color: col === 'error' ? 'var(--error)' : col === 'account_name' ? 'var(--text-secondary)' : 'var(--text)',
+                            fontWeight: item.metrics.includes(col) ? 500 : 400,
+                          }}>
+                            {fmtCell(col, row[col])}
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {(tableExpanded || isOverflowing) && (
+              <div style={{ borderTop: '1px solid var(--border)', padding: '8px 16px', textAlign: 'center' }}>
+                <button
+                  className="btn-ghost"
+                  onClick={() => setTableExpanded(e => !e)}
+                  style={{ ...actionBtn, fontSize: 12, color: 'var(--text-secondary)' }}
+                >
+                  {tableExpanded ? 'Collapse' : 'Show all rows'}
+                </button>
+              </div>
+            )}
+          </>
         )
       )}
     </div>
