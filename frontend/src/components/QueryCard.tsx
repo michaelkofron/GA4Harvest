@@ -314,9 +314,14 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
         ) : (
           <>
             {isComparison ? (
-              <div ref={tableContainerRef} style={{ overflow: 'auto', maxHeight: tableExpanded ? undefined : 360 }}>
-                <ComparisonTable results={results} metrics={item.metrics} dimensions={item.dimensions} comparison={item.comparison!} />
-              </div>
+              <>
+                <div style={{ padding: '6px 14px', background: '#fffbeb', borderTop: '1px solid var(--border)', borderBottom: '1px solid #fde68a', fontSize: 11, color: '#92400e', fontWeight: 500 }}>
+                  Comparing <strong>{item.comparison!.start_date} → {item.comparison!.end_date}</strong>
+                </div>
+                <div ref={tableContainerRef} style={{ overflow: 'auto', maxHeight: tableExpanded ? undefined : 360 }}>
+                  <ComparisonTable results={results} metrics={item.metrics} dimensions={item.dimensions} />
+                </div>
+              </>
             ) : (
               <div ref={tableContainerRef} style={{ borderTop: '1px solid var(--border)', overflow: 'auto', maxHeight: tableExpanded ? undefined : 360 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -372,11 +377,10 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
   )
 }
 
-function ComparisonTable({ results, metrics, dimensions, comparison }: {
+function ComparisonTable({ results, metrics, dimensions }: {
   results: QueryRow[]
   metrics: string[]
   dimensions: string[]
-  comparison: { start_date: string; end_date: string }
 }) {
   const rows = buildComparisonRows(results, metrics, dimensions)
   if (!rows.length) return null
@@ -406,10 +410,7 @@ function ComparisonTable({ results, metrics, dimensions, comparison }: {
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-      <div style={{ padding: '6px 14px', background: '#fffbeb', borderBottom: '1px solid #fde68a', fontSize: 11, color: '#92400e', fontWeight: 500 }}>
-        Comparing <strong>{comparison.start_date} → {comparison.end_date}</strong>
-      </div>
+    <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ background: '#f8fafc' }}>
