@@ -4,11 +4,7 @@
 
 Google Analytics 4's reporting UI is built around a single property at a time. For anyone managing analytics across multiple clients or brands, that means running the same report dozens of times and stitching together spreadsheets by hand.
 
-GA4Harvest fixes that. It connects to the GA4 Data API via a service account, lists every property you have access to, and lets you run a single parameterized query across all of them simultaneously — returning unified results you can export in one click.
-
-Built with a FastAPI backend and a React/TypeScript frontend. Queries stream in real time over SSE so you see results property-by-property as they arrive rather than waiting for a single blocking request. Results persist to the local filesystem between sessions and lazy-load on demand so the UI stays fast regardless of history size.
-
-<a href="https://www.buymeacoffee.com/michaelkofron" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+GA4Harvest fixes that. It connects to the GA4 Data API via a service account, lists every property you have access to, and lets you run a single parameterized query across all of them simultaneously — returning unified results you can export in one click. Built with a FastAPI backend and a React/TypeScript frontend, queries stream in real time over SSE so you see results property-by-property as they arrive. Results persist to the local filesystem between sessions and lazy-load on demand so the UI stays fast regardless of history size.
 
 ---
 
