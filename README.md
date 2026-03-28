@@ -1,4 +1,4 @@
-# GA4Harvest
+# 🌱 GA4Harvest
 
 ![GA4Harvest screenshot](screenshot.png)
 
