@@ -61,10 +61,10 @@ Two options — use whichever fits your setup:
 **Option A — drop the file in the project (simplest)**
 
 ```bash
-cp ~/Downloads/your-key-file.json backend/credentials.json
+cp ~/Downloads/your-key-file.json backend/
 ```
 
-`backend/credentials.json` is in `.gitignore` and won't be committed.
+The backend auto-detects any `.json` file in `backend/` — the filename doesn't matter. All JSON files in that folder are gitignored.
 
 **Option B — point to the file from anywhere on disk**
 
@@ -96,6 +96,27 @@ Creates a Python venv, installs backend deps, runs `npm install` for the fronten
 ```
 
 Opens at [http://localhost:5173](http://localhost:5173). Press Ctrl+C to stop.
+
+---
+
+## Authentication (optional)
+
+If you're exposing GA4Harvest beyond localhost (e.g. on a VPS), you can enable password protection. Add these to your `.env`:
+
+```bash
+AUTH_ENABLED=true
+ADMIN_PASSWORD=your-password-here
+```
+
+This gates the entire UI behind a login screen. The session is stored in an HttpOnly cookie that lasts 30 days. Login attempts are rate-limited to 5 per minute per IP.
+
+If serving over HTTPS (recommended for any public deployment), also set:
+
+```bash
+SECURE_COOKIES=true
+```
+
+Leave `SECURE_COOKIES` unset or `false` for localhost / plain HTTP — setting it to `true` without HTTPS will prevent the cookie from being sent.
 
 ---
 

@@ -1,5 +1,5 @@
-# Credentials — never commit
-backend/credentials.json
+# Credentials — never commit (auto-detects any .json in backend/)
+backend/*.json
 
 # Python
 backend/.venv/
