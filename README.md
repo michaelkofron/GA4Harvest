@@ -1,6 +1,6 @@
 # 🌱 GA4Harvest
 
-![GA4Harvest screenshot](screenshot.png)
+https://github.com/user-attachments/assets/eb480d7a-13e8-4673-8f42-41b53f27c5de
 
 Google Analytics 4's reporting UI is built around a single property at a time. For anyone managing analytics across multiple clients or brands, that means running the same report dozens of times and stitching together spreadsheets by hand.
 
