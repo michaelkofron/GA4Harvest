@@ -4,7 +4,7 @@ import { GRANULARITY_CARD_LABELS, GRANULARITY_DIMENSION } from '../types'
 import {
   downloadExcel, downloadJSON,
   buildComparisonRows, downloadComparisonExcel, downloadComparisonJSON, copyComparisonTSV,
-  type ComparisonRow,
+  type ComparisonRow, type DateRanges,
 } from '../utils/export'
 
 interface Props {
@@ -94,12 +94,21 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
     return buildComparisonRows(results, item.metrics, item.dimensions)
   }
 
+  const getDateRanges = (): DateRanges | undefined => {
+    if (!item.comparison) return undefined
+    return {
+      main: { start_date: item.start_date, end_date: item.end_date },
+      compare: item.comparison,
+    }
+  }
+
   const handleExport = async (type: 'excel' | 'json') => {
     const filename = `ga4_${item.id}`
     if (isComparison) {
       const cmpRows = await getComparisonRows()
-      if (type === 'excel') await downloadComparisonExcel(cmpRows, `${filename}_comparison.xlsx`)
-      else downloadComparisonJSON(cmpRows, `${filename}_comparison.json`)
+      const dateRanges = getDateRanges()
+      if (type === 'excel') await downloadComparisonExcel(cmpRows, `${filename}_comparison.xlsx`, dateRanges)
+      else downloadComparisonJSON(cmpRows, `${filename}_comparison.json`, dateRanges)
     } else {
       const results = localResults ?? await loadResults()
       const rows = item.time_series
@@ -114,7 +123,7 @@ export default function QueryCard({ item, onDelete, defaultExpanded = false }: P
     if (isComparison) {
       const cmpRows = await getComparisonRows()
       if (!cmpRows.length) return
-      await navigator.clipboard.writeText(copyComparisonTSV(cmpRows))
+      await navigator.clipboard.writeText(copyComparisonTSV(cmpRows, getDateRanges()))
     } else {
       const results = localResults ?? await loadResults()
       if (!results.length) return
