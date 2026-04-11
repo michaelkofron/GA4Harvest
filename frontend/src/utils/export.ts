@@ -55,6 +55,11 @@ export function downloadJSON(
 
 // ── Comparison exports ────────────────────────────────────────────────────────
 
+export interface DateRanges {
+  main: { start_date: string; end_date: string }
+  compare: { start_date: string; end_date: string }
+}
+
 export interface ComparisonRow {
   property_name: string
   account_name: string
@@ -121,7 +126,7 @@ export function buildComparisonRows(
   })
 }
 
-export function downloadComparisonCSV(rows: ComparisonRow[], filename: string) {
+export function downloadComparisonCSV(rows: ComparisonRow[], filename: string, dateRanges?: DateRanges) {
   if (!rows.length) return
   const keys = Object.keys(rows[0])
   const escape = (v: unknown) => {
@@ -130,18 +135,31 @@ export function downloadComparisonCSV(rows: ComparisonRow[], filename: string) {
       ? `"${s.replace(/"/g, '""')}"`
       : s
   }
-  const lines = [keys.join(','), ...rows.map(r => keys.map(k => escape(r[k])).join(','))]
+  const lines: string[] = []
+  if (dateRanges) {
+    lines.push(`Main,${dateRanges.main.start_date} to ${dateRanges.main.end_date}`)
+    lines.push(`Compare,${dateRanges.compare.start_date} to ${dateRanges.compare.end_date}`)
+  }
+  lines.push(keys.join(','), ...rows.map(r => keys.map(k => escape(r[k])).join(',')))
   triggerDownload(lines.join('\n'), 'text/csv', filename)
 }
 
-export function downloadComparisonJSON(rows: ComparisonRow[], filename: string) {
-  triggerDownload(JSON.stringify(rows, null, 2), 'application/json', filename)
+export function downloadComparisonJSON(rows: ComparisonRow[], filename: string, dateRanges?: DateRanges) {
+  const payload = dateRanges
+    ? { meta: { main: dateRanges.main, compare: dateRanges.compare }, data: rows }
+    : rows
+  triggerDownload(JSON.stringify(payload, null, 2), 'application/json', filename)
 }
 
-export function copyComparisonTSV(rows: ComparisonRow[]): string {
+export function copyComparisonTSV(rows: ComparisonRow[], dateRanges?: DateRanges): string {
   if (!rows.length) return ''
   const keys = Object.keys(rows[0])
-  const lines = [
+  const lines: string[][] = []
+  if (dateRanges) {
+    lines.push([`Main: ${dateRanges.main.start_date} to ${dateRanges.main.end_date}`])
+    lines.push([`Compare: ${dateRanges.compare.start_date} to ${dateRanges.compare.end_date}`])
+  }
+  lines.push(
     keys,
     ...rows.map(r => keys.map(k => {
       const v = r[k]
@@ -150,7 +168,7 @@ export function copyComparisonTSV(rows: ComparisonRow[]): string {
       if (k.endsWith('_delta_pct') && typeof v === 'number') return String(v / 100)
       return String(v ?? '')
     })),
-  ]
+  )
   return lines.map(r => r.join('\t')).join('\n')
 }
 
@@ -194,11 +212,18 @@ export async function downloadExcel(rows: QueryRow[], filename: string) {
   await triggerXlsxDownload(wb, filename)
 }
 
-export async function downloadComparisonExcel(rows: ComparisonRow[], filename: string) {
+export async function downloadComparisonExcel(rows: ComparisonRow[], filename: string, dateRanges?: DateRanges) {
   if (!rows.length) return
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Comparison')
   const keys = Object.keys(rows[0])
+
+  if (dateRanges) {
+    const mainRow = ws.addRow([`Main: ${dateRanges.main.start_date} to ${dateRanges.main.end_date}`])
+    mainRow.font = { bold: true, color: { argb: 'FF006100' } }
+    const cmpRow = ws.addRow([`Compare: ${dateRanges.compare.start_date} to ${dateRanges.compare.end_date}`])
+    cmpRow.font = { bold: true, color: { argb: 'FF9C0006' } }
+  }
 
   const header = ws.addRow(keys)
   header.font = { bold: true }
