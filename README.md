@@ -120,6 +120,42 @@ Leave `SECURE_COOKIES` unset or `false` for localhost / plain HTTP — setting i
 
 ---
 
+## Deploying with Docker
+
+A `Dockerfile` is included. It builds the frontend and packages everything into a single container — no separate Node process needed in production.
+
+**Build and run locally with Docker**
+
+```bash
+docker build -t ga4harvest .
+docker run -p 8000:8000 \
+  -e GOOGLE_CREDENTIALS_JSON="$(cat backend/your-key.json)" \
+  ga4harvest
+```
+
+Then open [http://localhost:8000](http://localhost:8000).
+
+**Deploy to any container platform** (Railway, Render, Fly.io, DigitalOcean App Platform, etc.)
+
+Point the platform at this repository. It will detect the `Dockerfile` and build automatically. Set the following environment variables in your platform's dashboard:
+
+| Variable | Required | Description |
+|---|---|---|
+| `GOOGLE_CREDENTIALS_JSON` | **Yes** | Full contents of your service account JSON key file, pasted as a single value. Parsed in memory — never written to disk. |
+| `AUTH_ENABLED` | Recommended | Set to `true` to require a password |
+| `ADMIN_PASSWORD` | Recommended | The dashboard password |
+| `SECURE_COOKIES` | Recommended | Set to `true` when serving over HTTPS |
+
+**Persisting query history**
+
+Query results are stored in `storage/queries/` inside the container. Without a persistent volume they reset on every redeploy. To persist history:
+
+- Mount a volume to `/app/storage`
+
+Most platforms (Railway, Render, Fly.io) offer persistent volumes you can attach in their dashboard.
+
+---
+
 ## Dependencies
 
 **Python** (`backend/requirements.txt`)

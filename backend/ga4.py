@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,9 +12,28 @@ from google.analytics.data_v1beta.types import (
 )
 from google.api_core.exceptions import ResourceExhausted
 
+# If GOOGLE_CREDENTIALS_JSON is set, parse it in memory so the key never
+# touches disk — preferred for container/Railway deployments.
+_credentials = None
+_creds_json_str = os.environ.get("GOOGLE_CREDENTIALS_JSON", "").strip()
+if _creds_json_str:
+    from google.oauth2.service_account import Credentials as _SACredentials
+    _credentials = _SACredentials.from_service_account_info(
+        json.loads(_creds_json_str),
+        scopes=["https://www.googleapis.com/auth/analytics.readonly"],
+    )
+
+
+def _admin_client() -> AnalyticsAdminServiceClient:
+    return AnalyticsAdminServiceClient(credentials=_credentials)
+
+
+def _data_client() -> BetaAnalyticsDataClient:
+    return BetaAnalyticsDataClient(credentials=_credentials)
+
 
 def list_properties() -> list[dict]:
-    client = AnalyticsAdminServiceClient()
+    client = _admin_client()
     results = []
     for account in client.list_account_summaries():
         for prop in account.property_summaries:
@@ -26,7 +46,7 @@ def list_properties() -> list[dict]:
 
 
 def get_metadata(property_id: str) -> dict:
-    client = BetaAnalyticsDataClient()
+    client = _data_client()
     metadata = client.get_metadata(name=f"properties/{property_id}/metadata")
     return {
         "metrics": [{"api_name": m.api_name, "ui_name": m.ui_name} for m in metadata.metrics],
@@ -145,7 +165,7 @@ def stream_report(
     all_results: list[dict] = []
 
     try:
-        client = BetaAnalyticsDataClient()
+        client = _data_client()
         for i, property_id in enumerate(property_ids):
             prop_info = property_map.get(property_id, {})
             prop_name = prop_info.get("property_name", property_id)
