@@ -3,6 +3,7 @@ import json
 import hmac
 import hashlib
 import secrets
+import threading
 from pathlib import Path
 import re
 from fastapi import FastAPI, HTTPException, Request
@@ -28,6 +29,9 @@ if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
 
 STORAGE_DIR = Path(__file__).resolve().parent.parent / "storage" / "queries"
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+
+_report_lock = threading.Lock()
+_report_state: dict = {}  # live progress of the currently running report
 
 from ga4 import list_properties, get_metadata, stream_report
 
@@ -144,11 +148,43 @@ def get_metadata_endpoint(property_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _guarded_stream(gen):
+    try:
+        for chunk in gen:
+            if chunk.startswith('data: '):
+                try:
+                    event = json.loads(chunk[6:].strip())
+                    if event.get('type') == 'progress':
+                        _report_state.update({
+                            'done': event.get('done', 0),
+                            'total': event.get('total', 0),
+                            'current': event.get('current', ''),
+                        })
+                except Exception:
+                    pass
+            yield chunk
+    finally:
+        _report_state.clear()
+        _report_lock.release()
+
+
 @app.post("/api/query/stream")
 def run_query_stream(req: QueryRequest):
+    if not _report_lock.acquire(blocking=False):
+        state = _report_state.copy()
+        msg = "Someone is already generating a report."
+        if state.get('total'):
+            msg += f" They're {state['done']} of {state['total']} properties in"
+            if state.get('current'):
+                msg += f", currently on {state['current']}"
+            msg += ". Please wait for it to finish."
+        else:
+            msg += " Please wait for it to finish."
+        raise HTTPException(status_code=409, detail=msg)
+    _report_state.update({'done': 0, 'total': len(req.property_ids), 'current': ''})
     storage_path = STORAGE_DIR / f"{req.query_id}.json"
     return StreamingResponse(
-        stream_report(
+        _guarded_stream(stream_report(
             req.query_id,
             req.property_ids,
             req.metrics,
@@ -159,7 +195,7 @@ def run_query_stream(req: QueryRequest):
             storage_path,
             req.filters,
             req.match_mode,
-        ),
+        )),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
